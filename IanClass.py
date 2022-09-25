@@ -2,32 +2,40 @@ import pandas as pd
 import os
 import math
 import random
-from ConfusionMatrix import ConfusionMatrix
-import numpy as np
+from Learning import Learning
 
-class IanClass:
+class IanClass (Learning):
     def __init__(self, file, features, name, classLoc, replaceValue = None):
-        df = pd.read_csv(os.getcwd() + r'\Raw Data' + '\\' + file)
-        self.df = df  # dataframe
-        self.features = features
-        self.name = name
-        self.addColumnNames(classLoc)  # add column names to correct spot
-        self.classes = list(set(self.df['Class']))
-        if replaceValue: self.findMissing(replaceValue)  # replace missing values
-        self.df.to_csv(
-            os.getcwd() + '\\' + str(self) + '\\' + "{}_w_colnames.csv".format(str(self)))  # create csv of file
-        self.seed = random.random()
+        super().__init__(file=file, features=features, name=name, classLoc=classLoc, replaceValue = replaceValue)
 
-    def __str__(self):
-        return self.name
+    def stratified_partition(self, k):
+        def partition(df, p, c):
+            n = df.shape[0]
+            (q, r) = (n // k, n % k)
+            j = 0
+            for i in range(k):
+                z = (i + c) % k
+                p[z] = p[z] + [df.at[x, 'index'] for x in range(j, j + q + int(i < r))]
+                j += q + int(i < r)
+            return (p, c + r)
+        p = [[] for i in range(k)]
+        c = 0
+        for cl in self.classes:
+            df = self.df[self.df['Class'] == cl].reset_index()
+            (p, c) = partition(df, p, c)
+        return p
 
-    def addColumnNames(self, classLoc):
-        if (classLoc == 'beginning'):  # if the class column is at the beginning
-            self.df.columns = ['Class'] + self.features
-            # shift the class column to the last column
-            last_column = self.df.pop('Class')
-            self.df.insert(len(self.df.columns), 'Class', last_column)
-        elif (classLoc == 'end'):  # if the class column is at the end -> continue as normal
-            self.df.columns = self.features + ['Class']
-        else:
-            print('Not sure where to place Class column')
+
+
+
+    # separate into training and test sets
+    def training_test_sets(self, j, df, partition=None):
+        if partition is None: partition = self.partition(10)
+        train = []
+        for i in range(len(partition)):
+            if j != i:
+                train += partition[i]
+            else:
+                test = partition[i]
+        self.train_set = df.filter(items=train, axis=0)
+        self.test_set = df.filter(items=test, axis=0)
