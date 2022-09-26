@@ -1,5 +1,6 @@
 from k_nearest import K_Nearest
 from SoyBean import SoyBean
+from Abalone import Abalone
 import os
 
 '''
@@ -10,11 +11,7 @@ def main_Ethan():
     ds.TrainFile()  #train file and return with new hyperparameters to input
 
 def main_Ian():
-    D = SoyBean()
-    p = D.stratified_partition(10)
-    for i in range(10):
-        D.df.filter(items = p[i], axis = 0).to_csv(os.getcwd() +
-                                                   '\\' + str(D) + '\\' + "{}_{}.csv".format(str(D), i))
+    D = Abalone()
 
 
 if __name__ == '__main__':
