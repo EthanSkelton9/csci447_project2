@@ -1,5 +1,7 @@
 import IBL
 
-class ForestFires (IBL):
+class Glass (IBL):
     def __init__(self):
-        pass
+
+        #initiate forestfires test set
+        super().__init__(file='forestfires.csv', name = 'Fires', classLoc = 'end')
