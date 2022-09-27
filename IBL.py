@@ -8,7 +8,7 @@ import random
 from ConfusionMatrix import ConfusionMatrix
 import numpy as np
 
-
+#instance based learning
 class IBL (IanClass, EthanClass):
     def __init__(self, file, features, name, classLoc, replaceValue = None, classification = True):
         super().__init__(file, features, name, classLoc, replaceValue, classification)
