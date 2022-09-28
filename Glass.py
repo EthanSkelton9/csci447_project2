@@ -1,6 +1,6 @@
-import IBL
+from k_nearest import K_Nearest
 
-class Glass (IBL):
+class Glass (K_Nearest):
     def __init__(self):
         #list of feature names(excluding class)
         features = [ #Class at end
@@ -17,4 +17,5 @@ class Glass (IBL):
             ]
 
         #initiate glass test set
-        super().__init__(file='glass.csv', features = features, name = 'Glass', classLoc = 'end')
+        super().__init__(file='glass.csv', features = features, name = 'Glass', classLoc = 'end', classification =
+                         False)

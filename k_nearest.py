@@ -5,7 +5,18 @@
 from train import Train
 from test import Test
 
-class K_Nearest:
+
+from IanClass import IanClass
+from EthanClass import EthanClass
+from asyncio.windows_events import NULL
+import pandas as pd
+import os
+import math
+import random
+from ConfusionMatrix import ConfusionMatrix
+import numpy as np
+    
+class K_Nearest(IanClass, EthanClass):
     
     
     '''
@@ -14,8 +25,8 @@ class K_Nearest:
     @param name - name of file 
     
     '''
-    def __init__(self, name):
-        self.name = name
+    def __init__(self, file, features, name, classLoc, replaceValue = None, classification = True):
+        super().__init__(file, features, name, classLoc, replaceValue, classification)
         
     
     '''
