@@ -10,8 +10,9 @@ import numpy as np
 
 #instance based learning
 class IBL (IanClass, EthanClass):
-    def __init__(self, file, features, name, classLoc, replaceValue = None, classification = True):
-        super().__init__(file, features, name, classLoc, replaceValue, classification)
+    def __init__(self, file, features, name, classLoc,replaceValue = None, classification=True):
+        super().__init__(file = file, features = features, name = name, classLoc = classLoc,
+                         replaceValue = replaceValue, classification = classification)
 
 
 

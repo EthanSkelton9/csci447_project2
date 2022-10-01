@@ -38,8 +38,14 @@ def main_Ethan():
     
 def main_Ian():
     D = Abalone()
+    p = D.stratified_partition(10)
+    for i in range(10):
+        print(p[i])
+        D.df.filter(items =  p[i], axis=0).to_csv(
+            os.getcwd() + '\\' + str(D) + '\\' + "{}_{}.csv".format(str(D), i))
+
 
 
 if __name__ == '__main__':
-    # main_Ian()
-    main_Ethan()
+    main_Ian()
+    # main_Ethan()

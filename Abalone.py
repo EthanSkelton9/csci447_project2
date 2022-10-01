@@ -7,4 +7,5 @@ class Abalone (IBL):
                     'Shell Weight']
 
         # initiate soybeans test set
-        super().__init__(file='abalone.csv', features=features, name="Abalone", classLoc='end', classification = False)
+        super().__init__(file='abalone.csv', features=features, name="Abalone", classLoc='end',
+                         replaceValue=False, classification = False)

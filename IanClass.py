@@ -10,21 +10,29 @@ class IanClass (Learning):
                          classification = classification)
 
     def stratified_partition(self, k):
-        def partition(df, p, c):
+        p = [[] for i in range(k)]
+        if self.classification:
+            def class_partition(df, p, c):
+                n = df.shape[0]
+                (q, r) = (n // k, n % k)
+                j = 0
+                for i in range(k):
+                    z = (i + c) % k
+                    p[z] = p[z] + [df.at[x, 'index'] for x in range(j, j + q + int(i < r))]
+                    j += q + int(i < r)
+                return (p, c + r)
+            c = 0
+            for cl in self.classes:
+                df = self.df[self.df['Class'] == cl].reset_index()
+                (p, c) = class_partition(df, p, c)
+        else:
+            df = self.df.sort_values(by=['Target Value']).reset_index()
             n = df.shape[0]
             (q, r) = (n // k, n % k)
-            j = 0
             for i in range(k):
-                z = (i + c) % k
-                p[z] = p[z] + [df.at[x, 'index'] for x in range(j, j + q + int(i < r))]
-                j += q + int(i < r)
-            return (p, c + r)
-        p = [[] for i in range(k)]
-        c = 0
-        for cl in self.classes:
-            df = self.df[self.df['Class'] == cl].reset_index()
-            (p, c) = partition(df, p, c)
+                p[i] = p[i] + [df.at[i + c * k, 'index'] for c in range(q + int(i < r))]
         return p
+
 
 
 

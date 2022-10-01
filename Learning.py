@@ -9,6 +9,7 @@ class Learning:
         self.df = df  # dataframe
         self.features = features
         self.name = name
+        self.classification = classification
         self.addColumnNames(classLoc, classification)  # add column names to correct spot
         if classification: self.classes = list(set(self.df['Class']))
         self.df.to_csv(
