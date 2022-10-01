@@ -37,12 +37,25 @@ def main_Ethan():
 
     
 def main_Ian():
-    D = Abalone()
-    p = D.stratified_partition(10)
-    for i in range(10):
-        print(p[i])
-        D.df.filter(items =  p[i], axis=0).to_csv(
-            os.getcwd() + '\\' + str(D) + '\\' + "{}_{}.csv".format(str(D), i))
+    def f1():
+        D = Abalone()
+        p = D.stratified_partition(10)
+        for i in range(10):
+            print(p[i])
+            D.df.filter(items =  p[i], axis=0).to_csv(
+                os.getcwd() + '\\' + str(D) + '\\' + "{}_{}.csv".format(str(D), i))
+    def f2():
+        D = Abalone()
+        print("Numerical: {}".format(D.features_numerical))
+        print("Categorical: {}".format(D.features_categorical))
+        D.df.to_csv("d.csv")
+    def f3():
+        D = Abalone()
+        x1 = D.value(D.df, 4)
+        x2 = D.value(D.df, 7)
+        print(D.norm_2_distance(x1, x2))
+    f3()
+
 
 
 

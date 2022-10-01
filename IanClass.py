@@ -33,7 +33,14 @@ class IanClass (Learning):
                 p[i] = p[i] + [df.at[i + c * k, 'index'] for c in range(q + int(i < r))]
         return p
 
+    def norm_2_distance(self, x1, x2):
+        d = 0
+        for f_num in self.features_ohe:
+            d += math.pow(x1[f_num] - x2[f_num], 2)
+        return math.sqrt(d)
 
+    def z_score_normalization(self):
+        pass
 
 
 
