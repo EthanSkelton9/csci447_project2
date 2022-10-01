@@ -54,7 +54,7 @@ def main_Ian():
         x1 = D.value(D.df, 4)
         x2 = D.value(D.df, 7)
         print(D.norm_2_distance(x1, x2))
-    f3()
+    f2()
 
 
 

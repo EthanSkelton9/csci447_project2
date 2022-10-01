@@ -39,9 +39,6 @@ class IanClass (Learning):
             d += math.pow(x1[f_num] - x2[f_num], 2)
         return math.sqrt(d)
 
-    def z_score_normalization(self):
-        pass
-
 
 
     # separate into training and test sets

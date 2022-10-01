@@ -12,6 +12,7 @@ class Learning:
         self.classification = classification
         self.addColumnNames(classLoc, classification)  # add column names to correct spot
         self.one_hot_encoding()
+        self.z_score_normalization()
         if classification: self.classes = list(set(self.df['Class']))
         self.df.to_csv(
             os.getcwd() + '\\' + str(self) + '\\' + "{}_w_colnames.csv".format(str(self)))  # create csv of file
@@ -48,6 +49,13 @@ class Learning:
         self.features_categorical = features_categorical
         self.df = pd.get_dummies(self.df, columns=self.features_categorical)
         self.features_ohe = features_numerical + features_categorical_ohe
+        target = 'Class' if self.classification else 'Target Value'
+        target_column = self.df.pop(target)
+        self.df.insert(len(self.df.columns), target, target_column)
+
+    def z_score_normalization(self):
+        for col in self.features_ohe:
+            self.df[col] = (self.df[col] - self.df[col].mean()) / self.df[col].std()
 
     # return value of a ceratin feature
     def value(self, df, i):
