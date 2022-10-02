@@ -12,4 +12,4 @@ class SoyBean (IBL):
 
         # initiate soybeans test set
         super().__init__(file='soybean-small.csv', features=features, name="SoyBean", classLoc='end', classification =
-                         False)
+                         True)

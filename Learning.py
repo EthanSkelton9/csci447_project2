@@ -13,7 +13,7 @@ class Learning:
         self.addColumnNames(classLoc, classification)  # add column names to correct spot
         self.one_hot_encoding()
         self.z_score_normalization()
-        if classification: self.classes = list(set(self.df['Class']))
+        if classification: self.classes = list(set(self.df['Target']))
         self.df.to_csv(
             os.getcwd() + '\\' + str(self) + '\\' + "{}_w_colnames.csv".format(str(self)))  # create csv of file
         self.seed = random.random()
@@ -53,7 +53,9 @@ class Learning:
 
     def z_score_normalization(self):
         for col in self.features_ohe:
-            self.df[col] = (self.df[col] - self.df[col].mean()) / self.df[col].std()
+            std = self.df[col].std()
+            if std != 0:
+                self.df[col] = (self.df[col] - self.df[col].mean()) / std
 
     # return value of a ceratin feature
     def value(self, df, i):

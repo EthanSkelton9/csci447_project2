@@ -7,6 +7,7 @@ from Glass import Glass
 from ForestFires import ForestFires
 from BreastCancer import BreastCancer
 import os
+import pandas as pd
 
 '''
     Driver for k Nearest Neighbor    
@@ -45,10 +46,20 @@ def main_Ian():
             D.df.filter(items =  p[i], axis=0).to_csv(
                 os.getcwd() + '\\' + str(D) + '\\' + "{}_{}.csv".format(str(D), i))
     def f2():
-        D = Abalone()
-        print("Numerical: {}".format(D.features_numerical))
-        print("Categorical: {}".format(D.features_categorical))
-        D.df.to_csv("d.csv")
+        D = SoyBean()
+        p = D.stratified_partition(10)
+        D.training_test_sets(0, D.df, p)
+        pred_df = pd.DataFrame(D.df.to_dict())
+        predicted_classes = []
+        for i in range(D.df.shape[0]):
+            if i in p[0]:
+                predicted = D.predicted_class(D.value(D.df, i), 100000000)
+                actual = D.df.at[i, 'Target']
+                predicted_classes.append(predicted)
+            else:
+                predicted_classes.append(None)
+        pred_df["Pred"] = predicted_classes
+        pred_df.to_csv(os.getcwd() + '\\' + str(D) + '\\' + "{}_Pred.csv".format(str(D)))
     def f3():
         D = Abalone()
         x1 = D.value(D.df, 4)
