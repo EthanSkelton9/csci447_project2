@@ -9,6 +9,11 @@ class IanClass (Learning):
         super().__init__(file=file, features=features, name=name, classLoc=classLoc, replaceValue = replaceValue,
                          classification = classification)
 
+    def neighbors(self):
+        neighbor_index = random.sample(self.index, k=math.ceil(len(self.index) * .1))
+        self.neighbors = self.df.filter(items = neighbor_index, axis=0)
+        self.learning_set = self.df.drop(neighbor_index,  axis=0)
+
     def stratified_partition(self, k):
         p = [[] for i in range(k)]
         if self.classification:
@@ -38,6 +43,13 @@ class IanClass (Learning):
         for f_num in self.features_ohe:
             d += math.pow(x1[f_num] - x2[f_num], 2)
         return math.sqrt(d)
+
+    def P(self, x, cl, h):
+        def kernel(x):
+            return int(abs(x) < 1/2)
+        p = 0
+        for t in self.neighbors[self.neighbors['Target'] == cl].index:
+            kernel(self.norm_2_distance(x, self.value(self.neighbors, t)) / h)
 
 
 

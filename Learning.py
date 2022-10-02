@@ -22,14 +22,13 @@ class Learning:
         return self.name
 
     def addColumnNames(self, classLoc, classification):
-        target = 'Class' if classification else 'Target Value'
         if (classLoc == 'beginning'):  # if the class column is at the beginning
-            self.df.columns = [target] + self.features
+            self.df.columns = ['Target'] + self.features
             # shift the class column to the last column
-            last_column = self.df.pop(target)
-            self.df.insert(len(self.df.columns), target, last_column)
+            last_column = self.df.pop('Target')
+            self.df.insert(len(self.df.columns), 'Target', last_column)
         elif (classLoc == 'end'):  # if the class column is at the end -> continue as normal
-            self.df.columns = self.features + [target]
+            self.df.columns = self.features + ['Target']
         else:
             print('Not sure where to place Class column')
 
@@ -49,9 +48,8 @@ class Learning:
         self.features_categorical = features_categorical
         self.df = pd.get_dummies(self.df, columns=self.features_categorical)
         self.features_ohe = features_numerical + features_categorical_ohe
-        target = 'Class' if self.classification else 'Target Value'
-        target_column = self.df.pop(target)
-        self.df.insert(len(self.df.columns), target, target_column)
+        target_column = self.df.pop('Target')
+        self.df.insert(len(self.df.columns), 'Target', target_column)
 
     def z_score_normalization(self):
         for col in self.features_ohe:
