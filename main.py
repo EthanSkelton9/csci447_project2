@@ -39,12 +39,12 @@ def main_Ethan():
     
 def main_Ian():
     def f1():
-        D = Abalone()
+        D = SoyBean()
         p = D.stratified_partition(10)
-        for i in range(10):
-            print(p[i])
-            D.df.filter(items =  p[i], axis=0).to_csv(
-                os.getcwd() + '\\' + str(D) + '\\' + "{}_{}.csv".format(str(D), i))
+        D.training_test_sets(0, D.df, p)
+        x = D.value(D.df, 0)
+        print(D.train_set.index)
+        print(D.nearestneighbors_naive(x, 5))
     def f2():
         D = SoyBean()
         p = D.stratified_partition(10)
@@ -53,7 +53,7 @@ def main_Ian():
         predicted_classes = []
         for i in range(D.df.shape[0]):
             if i in p[0]:
-                predicted = D.predicted_class(D.value(D.df, i), 100000000)
+                predicted = D.nearestneighborEstimator(D.value(D.df, i), 5)
                 actual = D.df.at[i, 'Target']
                 predicted_classes.append(predicted)
             else:

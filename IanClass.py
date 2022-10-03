@@ -47,8 +47,8 @@ class IanClass (Learning):
                 train += partition[i]
             else:
                 test = partition[i]
-        self.train_set = df.filter(items=train, axis=0)
-        self.test_set = df.filter(items=test, axis=0)
+        self.train_set = df.filter(items=train, axis=0).reset_index()
+        self.test_set = df.filter(items=test, axis=0).reset_index()
 
     def norm_2_distance(self, x1, x2):
         d = 0
@@ -56,20 +56,59 @@ class IanClass (Learning):
             d += math.pow(x1[f_num] - x2[f_num], 2)
         return math.sqrt(d)
 
-    def P(self, x, cl, h):
-        def kernel(x):
-            return int(abs(x) < 1/2)
-        p = 0
-        for t in self.train_set[self.train_set['Target'] == cl].index:
-            p += kernel(self.norm_2_distance(x, self.value(self.train_set, t)) / h)
-        return p
 
-    def predicted_class(self, x, h):
+    def naiveEstimator(self, x, h):
+        def P(self, x, cl, h):
+            def kernel(u):
+                return int(abs(u) < 1 / 2)
+            p = 0
+            for t in self.train_set[self.train_set['Target'] == cl].index:
+                p += kernel(self.norm_2_distance(x, self.value(self.train_set, t)) / h)
+            return p
         (argmax, max_P) = (None, 0)
         for cl in self.classes:
-            y = self.P(x, cl, h)
+            y = P(x, cl, h)
             if y > max_P:
                 argmax = cl
                 max_P = y
         return argmax
+
+    def kernelEstimator(self, x, h):
+        def P(x, cl):
+            def kernel(u):
+                return math.exp(-math.pow(u, 2)/2) / math.sqrt(2 * math.pi)
+            p = 0
+            for t in self.train_set[self.train_set['Target'] == cl].index:
+                p += kernel(self.norm_2_distance(x, self.value(self.train_set, t)) / h)
+            return p
+        (argmax, max_P) = (None, 0)
+        for cl in self.classes:
+            y = P(x, cl)
+            if y > max_P:
+                argmax = cl
+                max_P = y
+        return argmax
+
+    def nearestneighbors_naive(self, x, k):
+        distances = self.train_set.index.map(lambda i: self.norm_2_distance(x, self.value(self.train_set, i)))
+        (_, indices) = distances.sort_values(return_indexer = True)
+        return indices.take(range(k))
+
+    def nearestneighborEstimator(self, x, k):
+        nn = self.nearestneighbors_naive(x, k)
+        nn = self.train_set.filter(items = nn, axis=0).groupby(by = ['Target'])['Target'].agg('count')
+        print(type(nn))
+        def P(x, cl):
+            if cl in nn.index:
+                return nn.at[cl] / k
+            else:
+                return 0
+        (argmax, max_P) = (None, 0)
+        for cl in self.classes:
+            y = P(x, cl)
+            if y > max_P:
+                argmax = cl
+                max_P = y
+        return argmax
+
 
