@@ -1,3 +1,4 @@
+from numpy import int64
 import pandas as pd
 import os
 import math
@@ -5,10 +6,24 @@ import random
 
 class Learning:
     def __init__(self, file, features, name, classLoc, replaceValue = None, classification = True):
-        df = pd.read_csv(os.getcwd() + r'\Raw Data' + '\\' + file)
+        
+        
+        if(features != None):
+            df = pd.read_csv(os.getcwd() + r'\Raw Data' + '\\' + file, header=None)
+            self.features = features
+        else:
+            df = pd.read_csv(os.getcwd() + r'\Raw Data' + '\\' + file)
+            self.features = df.keys().to_list()
+            if(classLoc == 'beginning'):
+                self.features.pop(0)
+            if(classLoc == 'end'):
+                self.features.pop()
         self.df = df  # dataframe
-        self.features = features
         self.name = name
+        if replaceValue: self.findMissing(replaceValue)   
+
+        print(type(df.iloc[24,6]))
+
         self.classification = classification
         self.addColumnNames(classLoc, classification)  # add column names to correct spot
         self.one_hot_encoding()
@@ -17,6 +32,16 @@ class Learning:
         self.df.to_csv(
             os.getcwd() + '\\' + str(self) + '\\' + "{}_w_colnames.csv".format(str(self)))  # create csv of file
         self.seed = random.random()
+
+
+        # function to find Missing data from dataset
+    def findMissing(self, replaceValue):
+        colToChange = None
+        for col_name in self.df.columns:
+            self.df[col_name] = self.df[col_name].replace(['?'], [int64(replaceValue)])
+            colToChange = col_name
+        self.df[colToChange] = pd.to_numeric(self.df[colToChange])
+        
 
     def __str__(self):
         return self.name

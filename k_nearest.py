@@ -25,7 +25,7 @@ class K_Nearest(IanClass, EthanClass):
     @param name - name of file 
     
     '''
-    def __init__(self, file, features, name, classLoc, replaceValue = None, classification = True):
+    def __init__(self, file, features, name, classLoc, replaceValue , classification = True):
         super().__init__(file, features, name, classLoc, replaceValue, classification)
         
     

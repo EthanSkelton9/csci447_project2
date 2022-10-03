@@ -16,5 +16,5 @@ class Hardware (K_Nearest):
             ]
 
         #initiate glass test set
-        super().__init__(file='machine.csv', features = features, name = 'Hardware', classLoc = 'end', classification =
+        super().__init__(file='machine.csv', features = features, name = 'Hardware', classLoc = 'end', replaceValue = None, classification =
                          False)
