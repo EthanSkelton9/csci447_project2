@@ -20,6 +20,9 @@ def main_Ethan():
     H = Hardware()
     B = BreastCancer()
 
+    F.TrainFile()
+
+
     # #hyperparameters:
     # #a
     # #b

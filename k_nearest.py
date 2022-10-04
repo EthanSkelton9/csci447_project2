@@ -26,22 +26,9 @@ class K_Nearest(IanClass, EthanClass):
     
     '''
     def __init__(self, file, features, name, classLoc, replaceValue , classification = True):
-        super().__init__(file, features, name, classLoc, replaceValue, classification)
+        super().__init__(file, features, name, classLoc, replaceValue, classification) 
         
     
-    '''
-    finds the missing values in the dataset and replaces them so that we dont have to worry about it
-    
-    @param file - file that we are checking for missing values
-    
-    @return - return the file without any missing values
-    '''
-    def missingValues(self, file):
-        
-        #replace missing values in the file
-        
-        
-        return file
     
     '''
     Split the file into a test set
@@ -66,15 +53,24 @@ class K_Nearest(IanClass, EthanClass):
         return file
     
     
+    def split(file):
+        
+        
+        return 
+    
+   
     '''
     Train the file that is sent in
     
     @param file - file that the program will be training on
     '''    
     def TrainFile(self, file):
-        
-        file = self.missingValues(file) #get rid of missing values in file
-        
+        df = self.df 
+        df.split(df)
+        tune = df.getTune()
+        train = df.getTrain()
+        p = df.stratified_partition(10)
+        df.training_test_sets()   
     #partition the file here
         
         trainf = self.test_file(file) #split data into training set

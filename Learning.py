@@ -22,8 +22,6 @@ class Learning:
         self.name = name
         if replaceValue: self.findMissing(replaceValue)   
 
-        print(type(df.iloc[24,6]))
-
         self.classification = classification
         self.addColumnNames(classLoc, classification)  # add column names to correct spot
         self.one_hot_encoding()
@@ -36,11 +34,10 @@ class Learning:
 
         # function to find Missing data from dataset
     def findMissing(self, replaceValue):
-        colToChange = None
         for col_name in self.df.columns:
             self.df[col_name] = self.df[col_name].replace(['?'], [int64(replaceValue)])
-            colToChange = col_name
-        self.df[colToChange] = pd.to_numeric(self.df[colToChange])
+        #quick fix 
+        self.df[6] = pd.to_numeric(self.df[6])
         
 
     def __str__(self):
