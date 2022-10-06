@@ -50,19 +50,7 @@ def main_Ian():
         print(D.nearestneighbors_naive(x, 5))
     def f2():
         D = SoyBean()
-        p = D.stratified_partition(10)
-        D.training_test_sets(0, D.df, p)
-        pred_df = pd.DataFrame(D.df.to_dict())
-        predicted_classes = []
-        for i in range(D.df.shape[0]):
-            if i in p[0]:
-                predicted = D.nearestneighborEstimator(D.value(D.df, i), 5)
-                actual = D.df.at[i, 'Target']
-                predicted_classes.append(predicted)
-            else:
-                predicted_classes.append(None)
-        pred_df["Pred"] = predicted_classes
-        pred_df.to_csv(os.getcwd() + '\\' + str(D) + '\\' + "{}_Pred.csv".format(str(D)))
+        D.test()
     def f3():
         D = Abalone()
         x1 = D.value(D.df, 4)

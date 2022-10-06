@@ -10,7 +10,7 @@ class IanClass (Learning):
                          classification = classification)
 
     def tuners(self):
-        tuner_index = random.sample(self.index, k=math.ceil(len(self.index) * .1))
+        tuner_index = random.sample(self.df.index, k=math.ceil(len(self.index) * .1))
         self.tuners = self.df.filter(items = tuner_index, axis=0)
         self.learning_set = self.df.drop(tuner_index,  axis=0)
 
@@ -47,8 +47,7 @@ class IanClass (Learning):
                 train += partition[i]
             else:
                 test = partition[i]
-        self.train_set = df.filter(items=train, axis=0).reset_index()
-        self.test_set = df.filter(items=test, axis=0).reset_index()
+        return (df.filter(items=train, axis=0).reset_index(), df.filter(items=test, axis=0).reset_index())
 
     def norm_2_distance(self, x1, x2):
         d = 0
@@ -89,15 +88,15 @@ class IanClass (Learning):
                 max_P = y
         return argmax
 
-    def nearestneighbors_naive(self, x, k):
-        distances = self.train_set.index.map(lambda i: self.norm_2_distance(x, self.value(self.train_set, i)))
-        (_, indices) = distances.sort_values(return_indexer = True)
-        return indices.take(range(k))
 
-    def nearestneighborEstimator(self, x, k):
-        nn = self.nearestneighbors_naive(x, k)
-        nn = self.train_set.filter(items = nn, axis=0).groupby(by = ['Target'])['Target'].agg('count')
-        print(type(nn))
+
+    def nearestneighborEstimator(self, train_set, x, k):
+        def nearestneighbors_naive():
+            distances = train_set.index.map(lambda i: self.norm_2_distance(x, self.value(train_set, i)))
+            (_, indices) = distances.sort_values(return_indexer=True)
+            return indices.take(range(k))
+        nn = nearestneighbors_naive()
+        nn = train_set.filter(items = nn, axis=0).groupby(by = ['Target'])['Target'].agg('count')
         def P(x, cl):
             if cl in nn.index:
                 return nn.at[cl] / k
@@ -110,5 +109,16 @@ class IanClass (Learning):
                 argmax = cl
                 max_P = y
         return argmax
+
+    def test(self):
+        p = self.stratified_partition(10)
+        pred_df = pd.DataFrame(self.df.to_dict())
+        predicted_classes = pd.Series(self.df.shape[0] * [None])
+        for i in range(len(p)):
+            (train_set, test_set) = self.training_test_sets(i, self.df, p)
+            classes = pd.Series(p[i]).map(lambda j: self.nearestneighborEstimator(train_set, self.value(self.df, j), 5))
+            predicted_classes.iloc[p[i]] = classes
+        pred_df["Pred"] = predicted_classes
+        pred_df.to_csv(os.getcwd() + '\\' + str(self) + '\\' + "{}_Pred.csv".format(str(self)))
 
 
