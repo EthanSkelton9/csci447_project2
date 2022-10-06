@@ -44,10 +44,8 @@ def main_Ian():
     def f1():
         D = SoyBean()
         p = D.stratified_partition(10)
-        D.training_test_sets(0, D.df, p)
-        x = D.value(D.df, 0)
-        print(D.train_set.index)
-        print(D.nearestneighbors_naive(x, 5))
+        (train_set, test_set) = D.training_test_sets(0, D.df, p)
+        print(D.edited_nearest_neighbors(train_set, 5))
     def f2():
         D = SoyBean()
         D.test()

@@ -88,27 +88,27 @@ class IanClass (Learning):
                 max_P = y
         return argmax
 
-
-
-    def nearestneighborEstimator(self, train_set, x, k):
-        def nearestneighbors_naive():
-            distances = train_set.index.map(lambda i: self.norm_2_distance(x, self.value(train_set, i)))
-            (_, indices) = distances.sort_values(return_indexer=True)
-            return indices.take(range(k))
-        nn = nearestneighbors_naive()
-        nn = train_set.filter(items = nn, axis=0).groupby(by = ['Target'])['Target'].agg('count')
-        def P(x, cl):
-            if cl in nn.index:
-                return nn.at[cl] / k
-            else:
-                return 0
-        (argmax, max_P) = (None, 0)
-        for cl in self.classes:
-            y = P(x, cl)
-            if y > max_P:
-                argmax = cl
-                max_P = y
-        return argmax
+    def nnEstimator(self, train_set, k, editedn = False):
+        if editedn:
+            neighbors = train_set.loc[train_set.index.map(lambda i:
+                                                          self.nnEstimator(train_set.drop([i]), k)(
+                                                              self.value(train_set, i))
+                                                          == train_set.at[i, 'Target'])]
+        else:
+            neighbors = train_set
+        def nearestneighbor(x):
+            distances = neighbors.index.map(lambda i: self.norm_2_distance(x, self.value(train_set, i)))
+            nn = train_set.filter(items =
+                                  distances.sort_values(return_indexer=True)[1].take(range(k)), axis=0).groupby(by =
+                                    ['Target'])['Target'].agg('count')
+            (argmax, max_P) = (None, 0)
+            for cl in self.classes:
+                y = nn.at[cl] / k if cl in nn.index else 0
+                if y > max_P:
+                    argmax = cl
+                    max_P = y
+            return argmax
+        return nearestneighbor
 
     def test(self):
         p = self.stratified_partition(10)
@@ -116,7 +116,8 @@ class IanClass (Learning):
         predicted_classes = pd.Series(self.df.shape[0] * [None])
         for i in range(len(p)):
             (train_set, test_set) = self.training_test_sets(i, self.df, p)
-            classes = pd.Series(p[i]).map(lambda j: self.nearestneighborEstimator(train_set, self.value(self.df, j), 5))
+            nn = self.nnEstimator(train_set, 4, True)
+            classes = pd.Series(p[i]).map(lambda j: nn(self.value(self.df, j)))
             predicted_classes.iloc[p[i]] = classes
         pred_df["Pred"] = predicted_classes
         pred_df.to_csv(os.getcwd() + '\\' + str(self) + '\\' + "{}_Pred.csv".format(str(self)))
