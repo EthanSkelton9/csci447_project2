@@ -56,61 +56,29 @@ class IanClass (Learning):
             d += math.pow(x1[f_num] - x2[f_num], 2)
         return math.sqrt(d)
 
-
-    def naiveEstimator(self, x, h):
-        def P(self, x, cl, h):
-            def kernel(u):
-                return int(abs(u) < 1 / 2)
-            p = 0
-            for t in self.train_set[self.train_set['Target'] == cl].index:
-                p += kernel(self.norm_2_distance(x, self.value(self.train_set, t)) / h)
-            return p
-        (argmax, max_P) = (None, 0)
-        for cl in self.classes:
-            y = P(x, cl, h)
-            if y > max_P:
-                argmax = cl
-                max_P = y
-        return argmax
-
-    def kernelEstimator(self, x, h):
-        def P(x, cl):
-            def kernel(u):
-                return math.exp(-math.pow(u, 2)/2) / math.sqrt(2 * math.pi)
-            p = 0
-            for t in self.train_set[self.train_set['Target'] == cl].index:
-                p += kernel(self.norm_2_distance(x, self.value(self.train_set, t)) / h)
-            return p
-        (argmax, max_P) = (None, 0)
-        for cl in self.classes:
-            y = P(x, cl)
-            if y > max_P:
-                argmax = cl
-                max_P = y
-        return argmax
-
-    def nnEstimator(self, train_set, k, sigma = None, editedn = False):
+    def nnEstimator(self, train_set, k, sigma = None, editedn = False, epsilon = None):
         if editedn:
-            neighbors = train_set.loc[
-                train_set.index.map(lambda i:
-                                    self.nnEstimator(train_set.drop([i]), k, sigma = sigma)(self.value(train_set, i))
-                                    == train_set.at[i, 'Target'])]
-            print("Edited Neighbors: {}".format(neighbors))
+            def correctly_classified(i):
+                if self.classification:
+                    return self.nnEstimator(train_set.drop([i]),
+                                            k, sigma = sigma)(self.value(train_set, i)) == train_set.at[i, 'Target']
+                else:
+                    return abs(self.nnEstimator(train_set.drop([i]),
+                                                k, sigma = sigma)(self.value(train_set, i)) -
+                                                train_set.at[i, 'Target']) < epsilon
+
+            neighbors = train_set.loc[train_set.index.map(correctly_classified)]
         else:
             neighbors = train_set
         def nn_estimate(x):
-            print("Train Index: {}".format(neighbors.index))
-            print("Train Series: {}".format(neighbors.index.to_series()))
             distances = neighbors.index.to_series().map(lambda i: self.norm_2_distance(x, self.value(train_set, i)))
-            print("Dist Type: {}".format(type(distances)))
-            (dist_sorted, index_sorted) = distances.sort_values(return_indexer=True)
-            print("Indexer: {}".format(index_sorted))
-            nn = pd.Series(index_sorted.map(lambda i: neighbors.index[i]).take(range(k)))
+            dist_sorted = distances.sort_values().take(range(k))
+            nn = dist_sorted.index
             if self.classification:
                 w = train_set.filter(items = nn, axis=0).groupby(by = ['Target'])['Target'].agg('count')
                 (argmax, max_P) = (None, 0)
                 for cl in self.classes:
-                    y = w.at[cl] / k if cl in w.index else 0
+                    y = w.at[cl] if cl in w.index else 0
                     if y > max_P:
                         argmax = cl
                         max_P = y
@@ -121,18 +89,16 @@ class IanClass (Learning):
                 v = dist_sorted.take(range(k)).map(kernel).to_numpy()
                 r = nn.map(lambda i: train_set.at[i, 'Target'])
                 return (v.dot(r))/v.sum()
-
         return nn_estimate
 
     def test(self):
         pred_df = pd.DataFrame(self.df.filter(items=range(50), axis=0).to_dict())
         p = self.stratified_partition(10, df = pred_df)
         predicted_classes = pd.Series(pred_df.shape[0] * [None])
-        for i in range(1):
+        for i in range(10):
             (train_set, test_set) = self.training_test_sets(i, pred_df, p)
-            nne = self.nnEstimator(train_set, 5, sigma = 1, editedn = True)
+            nne = self.nnEstimator(train_set, 5, sigma = 1, epsilon = 2, editedn = True)
             classes = pd.Series(p[i]).map(lambda j: nne(self.value(self.df, j)))
-            print("Classes: {}".format(classes))
             predicted_classes.iloc[p[i]] = classes
         pred_df["Pred"] = predicted_classes
         pred_df.to_csv(os.getcwd() + '\\' + str(self) + '\\' + "{}_Pred.csv".format(str(self)))
