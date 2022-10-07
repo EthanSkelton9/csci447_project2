@@ -3,6 +3,7 @@ import os
 import math
 import random
 from Learning import Learning
+from ConfusionMatrix import ConfusionMatrix
 
 class IanClass (Learning):
     def __init__(self, file, features, name, classLoc, replaceValue = None, classification = True):
@@ -65,33 +66,23 @@ class IanClass (Learning):
                 zero_one_sum += int(predicted[i] == actual[i])
             return zero_one_sum / len(predicted)
 
-    def nnEstimator(self, train_set, k, sigma = None, epsilon = None, edit = False, test_set = None):
-        if edit:
-            def correctly_classified(i):
-                if self.classification:
-                    return self.nnEstimator(train_set.drop([i]),
-                                            k, sigma = sigma)(self.value(train_set, i)) == train_set.at[i, 'Target']
-                else:
-                    return abs(self.nnEstimator(train_set.drop([i]),
-                                                k, sigma = sigma)(self.value(train_set, i)) -
-                                                train_set.at[i, 'Target']) < epsilon
-
-            edited_neighbors = train_set.loc[train_set.index.map(correctly_classified)]
-            old_pred = test_set.index.map(lambda j: self.nnEstimator(train_set, k,
-                                                                     sigma = sigma)(self.value(test_set, j)))
-            new_pred = test_set.index.map(lambda j: self.nnEstimator(edited_neighbors, k,
-                                                                     sigma = sigma)(self.value(test_set, j)))
-            actual = test_set['Target'].to_list()
-            if self.zero_one_loss(old_pred, actual) > self.zero_one_loss(new_pred, actual) or \
-                    train_set.shape[0] == edited_neighbors.shape[0]:
-                neighbors = train_set
-            else:
-                return self.nnEstimator(edited_neighbors, k, sigma = sigma, epsilon = None,
-                                        edit = True, test_set = test_set)
+    def p_Macro(self, predicted, actual):
+        if len(predicted) != len(actual):
+            print("Not Equal Lengths")
         else:
-            neighbors = train_set
+            CM = ConfusionMatrix(self.classes)
+            for i in range(len(predicted)):
+                CM.df.at[predicted[i], actual[i]] += int(predicted[i] == actual[i])
+            return CM.pmacro()
+
+    def avg_Eval(self, f, g):
+        def eval(predicted, actual):
+            return (f(predicted, actual) + g(predicted, actual)) / 2
+        return eval
+
+    def nnEstimator(self, train_set, k, sigma = None, epsilon = None, edit = False, test_set = None):
         def nn_estimate(x):
-            distances = neighbors.index.to_series().map(lambda i: self.norm_2_distance(x, self.value(train_set, i)))
+            distances = train_set.index.to_series().map(lambda i: self.norm_2_distance(x, self.value(train_set, i)))
             dist_sorted = distances.sort_values().take(range(k))
             nn = dist_sorted.index
             if self.classification:
@@ -109,7 +100,34 @@ class IanClass (Learning):
                 v = dist_sorted.take(range(k)).map(kernel).to_numpy()
                 r = nn.map(lambda i: train_set.at[i, 'Target'])
                 return (v.dot(r))/v.sum()
-        return nn_estimate
+
+        if edit:
+            def correctly_classified(i):
+                if self.classification:
+                    return self.nnEstimator(train_set.drop([i]),
+                                            k, sigma = sigma)(self.value(train_set, i)) == train_set.at[i, 'Target']
+                else:
+                    return abs(self.nnEstimator(train_set.drop([i]),
+                                                k, sigma = sigma)(self.value(train_set, i)) -
+                                                train_set.at[i, 'Target']) < epsilon
+
+            edited_neighbors = train_set.loc[train_set.index.map(correctly_classified)]
+            if train_set.shape[0] != edited_neighbors.shape[0]:
+                old_pred = test_set.index.map(lambda j: self.nnEstimator(train_set, k,
+                                                                         sigma=sigma)(self.value(test_set, j)))
+                new_pred = test_set.index.map(lambda j: self.nnEstimator(edited_neighbors, k,
+                                                                         sigma=sigma)(self.value(test_set, j)))
+                actual = test_set['Target'].to_list()
+                evaluator = self.avg_Eval(self.zero_one_loss, self.p_Macro)
+                if evaluator(old_pred, actual) <= evaluator(new_pred, actual):
+                    return self.nnEstimator(edited_neighbors, k, sigma=sigma, epsilon=None,
+                                            edit=True, test_set=test_set)
+                else:
+                    return nn_estimate
+            else:
+                return nn_estimate
+        else:
+            return nn_estimate
 
     def test(self):
         pred_df = pd.DataFrame(self.df.filter(items=range(50), axis=0).to_dict())
