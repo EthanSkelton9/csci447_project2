@@ -14,28 +14,29 @@ class IanClass (Learning):
         self.tuners = self.df.filter(items = tuner_index, axis=0)
         self.learning_set = self.df.drop(tuner_index,  axis=0)
 
-    def stratified_partition(self, k):
+    def stratified_partition(self, k, df = None):
+        if df is None: df = self.df
         p = [[] for i in range(k)]
         if self.classification:
-            def class_partition(df, p, c):
-                n = df.shape[0]
+            def class_partition(classdf, p, c):
+                n = classdf.shape[0]
                 (q, r) = (n // k, n % k)
                 j = 0
                 for i in range(k):
                     z = (i + c) % k
-                    p[z] = p[z] + [df.at[x, 'index'] for x in range(j, j + q + int(i < r))]
+                    p[z] = p[z] + [classdf.at[x, 'index'] for x in range(j, j + q + int(i < r))]
                     j += q + int(i < r)
                 return (p, c + r)
             c = 0
             for cl in self.classes:
-                df = self.df[self.df['Target'] == cl].reset_index()
-                (p, c) = class_partition(df, p, c)
+                classdf = df[df['Target'] == cl].reset_index()
+                (p, c) = class_partition(classdf, p, c)
         else:
-            df = self.df.sort_values(by=['Target']).reset_index()
-            n = df.shape[0]
+            sorted_df = df.sort_values(by=['Target']).reset_index()
+            n = sorted_df.shape[0]
             (q, r) = (n // k, n % k)
             for i in range(k):
-                p[i] = p[i] + [df.at[i + c * k, 'index'] for c in range(q + int(i < r))]
+                p[i] = p[i] + [sorted_df.at[i + c * k, 'index'] for c in range(q + int(i < r))]
         return p
 
         # separate into training and test sets
@@ -88,36 +89,50 @@ class IanClass (Learning):
                 max_P = y
         return argmax
 
-    def nnEstimator(self, train_set, k, editedn = False):
+    def nnEstimator(self, train_set, k, sigma = None, editedn = False):
         if editedn:
-            neighbors = train_set.loc[train_set.index.map(lambda i:
-                                                          self.nnEstimator(train_set.drop([i]), k)(
-                                                              self.value(train_set, i))
-                                                          == train_set.at[i, 'Target'])]
+            neighbors = train_set.loc[
+                train_set.index.map(lambda i:
+                                    self.nnEstimator(train_set.drop([i]), k, sigma = sigma)(self.value(train_set, i))
+                                    == train_set.at[i, 'Target'])]
+            print("Edited Neighbors: {}".format(neighbors))
         else:
             neighbors = train_set
-        def nearestneighbor(x):
-            distances = neighbors.index.map(lambda i: self.norm_2_distance(x, self.value(train_set, i)))
-            nn = train_set.filter(items =
-                                  distances.sort_values(return_indexer=True)[1].take(range(k)), axis=0).groupby(by =
-                                    ['Target'])['Target'].agg('count')
-            (argmax, max_P) = (None, 0)
-            for cl in self.classes:
-                y = nn.at[cl] / k if cl in nn.index else 0
-                if y > max_P:
-                    argmax = cl
-                    max_P = y
-            return argmax
-        return nearestneighbor
+        def nn_estimate(x):
+            print("Train Index: {}".format(neighbors.index))
+            print("Train Series: {}".format(neighbors.index.to_series()))
+            distances = neighbors.index.to_series().map(lambda i: self.norm_2_distance(x, self.value(train_set, i)))
+            print("Dist Type: {}".format(type(distances)))
+            (dist_sorted, index_sorted) = distances.sort_values(return_indexer=True)
+            print("Indexer: {}".format(index_sorted))
+            nn = pd.Series(index_sorted.map(lambda i: neighbors.index[i]).take(range(k)))
+            if self.classification:
+                w = train_set.filter(items = nn, axis=0).groupby(by = ['Target'])['Target'].agg('count')
+                (argmax, max_P) = (None, 0)
+                for cl in self.classes:
+                    y = w.at[cl] / k if cl in w.index else 0
+                    if y > max_P:
+                        argmax = cl
+                        max_P = y
+                return argmax
+            else:
+                def kernel(u):
+                    return math.exp(-math.pow(u, 2) / sigma)
+                v = dist_sorted.take(range(k)).map(kernel).to_numpy()
+                r = nn.map(lambda i: train_set.at[i, 'Target'])
+                return (v.dot(r))/v.sum()
+
+        return nn_estimate
 
     def test(self):
-        p = self.stratified_partition(10)
-        pred_df = pd.DataFrame(self.df.to_dict())
-        predicted_classes = pd.Series(self.df.shape[0] * [None])
-        for i in range(len(p)):
-            (train_set, test_set) = self.training_test_sets(i, self.df, p)
-            nn = self.nnEstimator(train_set, 4, True)
-            classes = pd.Series(p[i]).map(lambda j: nn(self.value(self.df, j)))
+        pred_df = pd.DataFrame(self.df.filter(items=range(50), axis=0).to_dict())
+        p = self.stratified_partition(10, df = pred_df)
+        predicted_classes = pd.Series(pred_df.shape[0] * [None])
+        for i in range(1):
+            (train_set, test_set) = self.training_test_sets(i, pred_df, p)
+            nne = self.nnEstimator(train_set, 5, sigma = 1, editedn = True)
+            classes = pd.Series(p[i]).map(lambda j: nne(self.value(self.df, j)))
+            print("Classes: {}".format(classes))
             predicted_classes.iloc[p[i]] = classes
         pred_df["Pred"] = predicted_classes
         pred_df.to_csv(os.getcwd() + '\\' + str(self) + '\\' + "{}_Pred.csv".format(str(self)))
