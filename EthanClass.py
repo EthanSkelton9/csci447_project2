@@ -4,16 +4,6 @@ import math
 import random
 from Learning import Learning
 
-
-def clusterSame(nc, c):
-        nc.sort()
-        c.sort()
-        if nc == c :
-            return True
-        
-        else:
-            return False
-
 class EthanClass (Learning):
     def __init__(self, file, features, name, classLoc, replaceValue = None, classification = True):
         super().__init__(file=file, features=features, name=name, classLoc=classLoc, replaceValue = replaceValue,
@@ -133,10 +123,11 @@ class EthanClass (Learning):
 
 
 
-    def dist(x, u):
-        #find the distance
-        return x
-
+    def centroid(self, data):
+        avg = []
+        for col in data:
+            data[col].sum() / len(data[col])
+        return avg
     '''
     clusterSame returns whether two cluster list are the same
     @param nc - new cluster that was created from data
@@ -145,26 +136,37 @@ class EthanClass (Learning):
     @return True - if same
     @return False - if different
     '''
-    
+    def clusterSame(self, nc, c):
+        nc.sort()
+        c.sort()
+        if nc == c :
+            return True
+        else:
+            return False
 
     '''
     calcCluster - calculates new cluseter averages 
 
     '''
 
-    def calcCluster(data, k):
+    def calcCluster(self, data, k):
         c = []
         for i in k:
             df = data.loc[data['cluster'] == i]
-            c[i] = df.avg
+            c[i] = self.centroid(df) #calculate the mean of the cluster
         return c
+    
+    '''
+    k_means - calculates the clusters based on the mean 
+    '''
 
-    def k_means(data, k):
+    def k_means(self, k):
+        data = self.df 
         cluster_same = True # initialize 
         
         #initialize cluster list of centroids:
         cluster = []
-        new_cluster
+        new_cluster = []
         cluster = random.sample(range(0,1), k)
         new_data = data['cluster'] = 0
         
@@ -175,13 +177,13 @@ class EthanClass (Learning):
                 classList = []
                 classA = []
                 for u in cluster:
-                    classList.append(dist(x,u))
+                    classList.append(self.norm_2_distance(x,u))
                 classA.append(min(classList))
             new_data['cluster'] = classA
                 
                 
             #calculate new cluster
-            new_cluster = calcCluster(new_data,k)
-            cluster_same = clusterSame(new_cluster, cluster)
+            new_cluster = self.calcCluster(new_data,k)
+            cluster_same = self.clusterSame(new_cluster, cluster)
         
         return cluster
