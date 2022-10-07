@@ -20,7 +20,7 @@ def main_Ethan():
     H = Hardware()
     B = BreastCancer()
 
-    F.TrainFile()
+    F.k_means(3)
 
 
     # #hyperparameters:
@@ -60,5 +60,5 @@ def main_Ian():
 
 
 if __name__ == '__main__':
-    main_Ian()
-    #main_Ethan()
+    #main_Ian()
+    main_Ethan()
