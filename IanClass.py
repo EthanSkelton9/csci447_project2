@@ -56,8 +56,17 @@ class IanClass (Learning):
             d += math.pow(x1[f_num] - x2[f_num], 2)
         return math.sqrt(d)
 
-    def nnEstimator(self, train_set, k, sigma = None, editedn = False, epsilon = None):
-        if editedn:
+    def zero_one_loss(self, predicted, actual):
+        if len(predicted) != len(actual):
+            print("Not Equal Lengths")
+        else:
+            zero_one_sum = 0
+            for i in range(len(predicted)):
+                zero_one_sum += int(predicted[i] == actual[i])
+            return zero_one_sum / len(predicted)
+
+    def nnEstimator(self, train_set, k, sigma = None, epsilon = None, edit = False, test_set = None):
+        if edit:
             def correctly_classified(i):
                 if self.classification:
                     return self.nnEstimator(train_set.drop([i]),
@@ -67,7 +76,18 @@ class IanClass (Learning):
                                                 k, sigma = sigma)(self.value(train_set, i)) -
                                                 train_set.at[i, 'Target']) < epsilon
 
-            neighbors = train_set.loc[train_set.index.map(correctly_classified)]
+            edited_neighbors = train_set.loc[train_set.index.map(correctly_classified)]
+            old_pred = test_set.index.map(lambda j: self.nnEstimator(train_set, k,
+                                                                     sigma = sigma)(self.value(test_set, j)))
+            new_pred = test_set.index.map(lambda j: self.nnEstimator(edited_neighbors, k,
+                                                                     sigma = sigma)(self.value(test_set, j)))
+            actual = test_set['Target'].to_list()
+            if self.zero_one_loss(old_pred, actual) > self.zero_one_loss(new_pred, actual) or \
+                    train_set.shape[0] == edited_neighbors.shape[0]:
+                neighbors = train_set
+            else:
+                return self.nnEstimator(edited_neighbors, k, sigma = sigma, epsilon = None,
+                                        edit = True, test_set = test_set)
         else:
             neighbors = train_set
         def nn_estimate(x):
@@ -97,7 +117,7 @@ class IanClass (Learning):
         predicted_classes = pd.Series(pred_df.shape[0] * [None])
         for i in range(10):
             (train_set, test_set) = self.training_test_sets(i, pred_df, p)
-            nne = self.nnEstimator(train_set, 5, sigma = 1, epsilon = 2, editedn = True)
+            nne = self.nnEstimator(train_set, 5, sigma = 1, epsilon = 2, edit = True, test_set = test_set)
             classes = pd.Series(p[i]).map(lambda j: nne(self.value(self.df, j)))
             predicted_classes.iloc[p[i]] = classes
         pred_df["Pred"] = predicted_classes
