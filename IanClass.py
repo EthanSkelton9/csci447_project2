@@ -4,6 +4,9 @@ import math
 import random
 from Learning import Learning
 from ConfusionMatrix import ConfusionMatrix
+import functools
+from functools import partial as pf
+from functools import reduce as rd
 
 class IanClass (Learning):
     def __init__(self, file, features, name, classLoc, replaceValue = None, classification = True):
@@ -43,37 +46,20 @@ class IanClass (Learning):
         # separate into training and test sets
     def training_test_sets(self, j, df, partition=None):
         if partition is None: partition = self.stratified_partition(10)
-        train = []
-        for i in range(len(partition)):
-            if j != i:
-                train += partition[i]
-            else:
-                test = partition[i]
-        return (df.filter(items=train, axis=0).reset_index(), df.filter(items=test, axis=0).reset_index())
+        train = partition[:j] + partition[j+1:]
+        return (df.filter(items=train, axis=0).reset_index(), df.filter(items=partition[j], axis=0).reset_index())
 
     def norm_2_distance(self, x1, x2):
-        d = 0
-        for f_num in self.features_ohe:
-            d += math.pow(x1[f_num] - x2[f_num], 2)
-        return math.sqrt(d)
+        return math.sqrt(pd.Series(self.features_ohe).map(lambda f: math.pow(x1[f] - x2[f], 2)).sum())
 
     def zero_one_loss(self, predicted, actual):
-        if len(predicted) != len(actual):
-            print("Not Equal Lengths")
-        else:
-            zero_one_sum = 0
-            for i in range(len(predicted)):
-                zero_one_sum += int(predicted[i] == actual[i])
-            return zero_one_sum / len(predicted)
+        return pd.Series(zip(predicted, actual)).map(lambda pair: int(pair[0] == pair[1])).sum() / len(predicted)
 
     def p_Macro(self, predicted, actual):
-        if len(predicted) != len(actual):
-            print("Not Equal Lengths")
-        else:
-            CM = ConfusionMatrix(self.classes)
-            for i in range(len(predicted)):
-                CM.df.at[predicted[i], actual[i]] += int(predicted[i] == actual[i])
-            return CM.pmacro()
+        CM = ConfusionMatrix(self.classes)
+        for i in range(len(predicted)):
+            CM.df.at[predicted[i], actual[i]] += int(predicted[i] == actual[i])
+        return CM.pmacro()
 
     def avg_Eval(self, f, g):
         def eval(predicted, actual):
@@ -81,19 +67,14 @@ class IanClass (Learning):
         return eval
 
     def nnEstimator(self, train_set, k, sigma = None, epsilon = None, edit = False, test_set = None):
-        def nn_estimate(x):
+        def nn_estimate_by_value(x):
             distances = train_set.index.to_series().map(lambda i: self.norm_2_distance(x, self.value(train_set, i)))
             dist_sorted = distances.sort_values().take(range(k))
             nn = dist_sorted.index
             if self.classification:
                 w = train_set.filter(items = nn, axis=0).groupby(by = ['Target'])['Target'].agg('count')
-                (argmax, max_P) = (None, 0)
-                for cl in self.classes:
-                    y = w.at[cl] if cl in w.index else 0
-                    if y > max_P:
-                        argmax = cl
-                        max_P = y
-                return argmax
+                count = lambda cl: w.at[cl] if cl in w.index else 0
+                return rd(lambda cl1, cl2: x if count(cl1) > count(cl2) else cl2, self.classes)
             else:
                 def kernel(u):
                     return math.exp(-math.pow(u, 2) / sigma)
@@ -103,31 +84,27 @@ class IanClass (Learning):
 
         if edit:
             def correctly_classified(i):
+                target = self.nnEstimator(train_set.drop([i]), k, sigma=sigma)(self.value(train_set, i))
                 if self.classification:
-                    return self.nnEstimator(train_set.drop([i]),
-                                            k, sigma = sigma)(self.value(train_set, i)) == train_set.at[i, 'Target']
+                    return target == train_set.at[i, 'Target']
                 else:
-                    return abs(self.nnEstimator(train_set.drop([i]),
-                                                k, sigma = sigma)(self.value(train_set, i)) -
-                                                train_set.at[i, 'Target']) < epsilon
+                    return abs(target - train_set.at[i, 'Target']) < epsilon
 
             edited_neighbors = train_set.loc[train_set.index.map(correctly_classified)]
             if train_set.shape[0] != edited_neighbors.shape[0]:
-                old_pred = test_set.index.map(lambda j: self.nnEstimator(train_set, k,
-                                                                         sigma=sigma)(self.value(test_set, j)))
-                new_pred = test_set.index.map(lambda j: self.nnEstimator(edited_neighbors, k,
-                                                                         sigma=sigma)(self.value(test_set, j)))
+                pred_func = lambda set: self.comp(self.nnEstimator(set, k, sigma), pf(self.value, test_set))
+                old_pred = test_set.index.map(pred_func(train_set))
+                new_pred = test_set.index.map(pred_func(edited_neighbors))
                 actual = test_set['Target'].to_list()
                 evaluator = self.avg_Eval(self.zero_one_loss, self.p_Macro)
                 if evaluator(old_pred, actual) <= evaluator(new_pred, actual):
-                    return self.nnEstimator(edited_neighbors, k, sigma=sigma, epsilon=None,
-                                            edit=True, test_set=test_set)
+                    return self.nnEstimator(edited_neighbors, k, sigma, epsilon, True, test_set)
                 else:
-                    return nn_estimate
+                    return nn_estimate_by_value
             else:
-                return nn_estimate
+                return nn_estimate_by_value
         else:
-            return nn_estimate
+            return nn_estimate_by_value
 
     def test(self):
         pred_df = pd.DataFrame(self.df.filter(items=range(50), axis=0).to_dict())
@@ -136,7 +113,7 @@ class IanClass (Learning):
         for i in range(10):
             (train_set, test_set) = self.training_test_sets(i, pred_df, p)
             nne = self.nnEstimator(train_set, 5, sigma = 1, epsilon = 2, edit = True, test_set = test_set)
-            classes = pd.Series(p[i]).map(lambda j: nne(self.value(self.df, j)))
+            classes = pd.Series(p[i]).map(self.comp(nne, pf(self.value, self.df)))
             predicted_classes.iloc[p[i]] = classes
         pred_df["Pred"] = predicted_classes
         pred_df.to_csv(os.getcwd() + '\\' + str(self) + '\\' + "{}_Pred.csv".format(str(self)))

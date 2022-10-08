@@ -3,6 +3,7 @@ import pandas as pd
 import os
 import math
 import random
+import functools
 
 class Learning:
     def __init__(self, file, features, name, classLoc, replaceValue = None, classification = True):
@@ -82,4 +83,9 @@ class Learning:
     # return value of a ceratin feature
     def value(self, df, i):
         return df.loc[i, self.features_ohe]
+
+    def comp(self, f, g):
+        def h(x):
+            return f(g(x))
+        return h
 
