@@ -46,7 +46,7 @@ class IanClass (Learning):
         # separate into training and test sets
     def training_test_sets(self, j, df, partition=None):
         if partition is None: partition = self.stratified_partition(10)
-        train = partition[:j] + partition[j+1:]
+        train = rd(lambda l1, l2: l1 + l2, partition[:j] + partition[j+1:])
         return (df.filter(items=train, axis=0).reset_index(), df.filter(items=partition[j], axis=0).reset_index())
 
     def norm_2_distance(self, x1, x2):
@@ -66,6 +66,22 @@ class IanClass (Learning):
             return (f(predicted, actual) + g(predicted, actual)) / 2
         return eval
 
+    def classification_error(self, predicted, actual):
+        return 1 - self.avg_Eval(self.zero_one_loss, self.p_Macro)
+
+    def mean_squared_error(self, predicted, actual):
+        return pd.Series(zip(predicted, actual)).map(lambda pair: math.pow(pair[0] - pair[1], 2)).sum() / len(predicted)
+
+    '''
+        nnEstimator returns a function that predicts the target of an example using k nearest neighbors
+        @param train_set - the set that we will use for our neighbors
+        @param k - the number of neighbors we will use to predict an example
+        @param sigma - the band width only used in regression sets
+        @param epsilon - the max tolerance used to determine if two regression examples have the same target for editing
+        @param edit - determines whether to use edited nearest neighbors or not
+        @param test_set - test set used to determine whether the edited neighbors improves performance
+        @return function that takes @param example x and returns predicted class or target value
+    '''
     def nnEstimator(self, train_set, k, sigma = None, epsilon = None, edit = False, test_set = None):
         def nn_estimate_by_value(x):
             distances = train_set.index.to_series().map(lambda i: self.norm_2_distance(x, self.value(train_set, i)))
@@ -74,7 +90,7 @@ class IanClass (Learning):
             if self.classification:
                 w = train_set.filter(items = nn, axis=0).groupby(by = ['Target'])['Target'].agg('count')
                 count = lambda cl: w.at[cl] if cl in w.index else 0
-                return rd(lambda cl1, cl2: x if count(cl1) > count(cl2) else cl2, self.classes)
+                return rd(lambda cl1, cl2: cl1 if count(cl1) > count(cl2) else cl2, self.classes)
             else:
                 def kernel(u):
                     return math.exp(-math.pow(u, 2) / sigma)
@@ -96,18 +112,13 @@ class IanClass (Learning):
                 old_pred = test_set.index.map(pred_func(train_set))
                 new_pred = test_set.index.map(pred_func(edited_neighbors))
                 actual = test_set['Target'].to_list()
-                evaluator = self.avg_Eval(self.zero_one_loss, self.p_Macro)
-                if evaluator(old_pred, actual) <= evaluator(new_pred, actual):
+                evaluator = self.classification_error if self.classification else self.mean_squared_error
+                if evaluator(old_pred, actual) >= evaluator(new_pred, actual):
                     return self.nnEstimator(edited_neighbors, k, sigma, epsilon, True, test_set)
-                else:
-                    return nn_estimate_by_value
-            else:
-                return nn_estimate_by_value
-        else:
-            return nn_estimate_by_value
+        return nn_estimate_by_value
 
     def test(self):
-        pred_df = pd.DataFrame(self.df.filter(items=range(50), axis=0).to_dict())
+        pred_df = pd.DataFrame(self.df.filter(items=range(40), axis=0).to_dict())
         p = self.stratified_partition(10, df = pred_df)
         predicted_classes = pd.Series(pred_df.shape[0] * [None])
         for i in range(10):

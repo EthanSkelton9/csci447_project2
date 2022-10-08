@@ -47,7 +47,7 @@ def main_Ian():
         (train_set, test_set) = D.training_test_sets(0, D.df, p)
         print(D.edited_nearest_neighbors(train_set, 5))
     def f2():
-        D = SoyBean()
+        D = Abalone()
         D.test()
     def f3():
         D = Abalone()
