@@ -123,10 +123,14 @@ class EthanClass (Learning):
 
 
 
-    def centroid(self, data):
+    def centroid(self, data, rand):
         avg = []
-        for col in data:
-            data[col].sum() / len(data[col])
+        if rand:
+            avg = data.sample().values.tolist()
+            avg = avg[0]
+        else:
+            for col in data:
+                avg.append(data[col].sum() / len(data[col]))
         return avg
     '''
     clusterSame returns whether two cluster list are the same
@@ -150,12 +154,50 @@ class EthanClass (Learning):
     '''
 
     def calcCluster(self, data, k):
+        
+        rand = False
         c = []
-        for i in k:
+        for i in range(k):
             df = data.loc[data['cluster'] == i]
-            c[i] = self.centroid(df) #calculate the mean of the cluster
+            c.append(self.centroid(df, rand)) #calculate the mean of the cluster
+        return c
+
+    def randCluster(self, data, k):
+        c = []
+        rand = True
+        for i in range(k):
+            c.append(self.centroid(data, rand))
         return c
     
+    def dist(self, data, centroid):
+        distances = []
+        for index, row in data.iterrows():
+            r = []
+            for i in range(len(row)):
+                r.append(row[i])
+
+            d = []
+            for r1, c1 in zip(r, centroid):
+                item = r1 - c1
+                d.append(item)
+            distances.append(d)
+        return distances
+
+
+    def minimum(self, list, cData):
+        c = 0
+        min = 0
+        for r in range(len(list[0])):
+            for l in range(len(list)):
+                total = 0
+                for d in range(len(list[0][0])):
+                    total += list[l][r][d]
+                if abs(total) < abs(min) or min == 0:
+                    min = total
+                    c = l
+            cData.iloc[r, -1] = c
+        return cData
+
     '''
     k_means - calculates the clusters based on the mean 
     '''
@@ -167,19 +209,19 @@ class EthanClass (Learning):
         #initialize cluster list of centroids:
         cluster = []
         new_cluster = []
-        cluster = random.sample(range(0,1), k)
-        new_data = data['cluster'] = 0
+        cluster = self.randCluster(data, k)
+        new_data = data
+        new_data['cluster'] = 0
         
         while cluster_same:
             if new_cluster != []: #set cluster to new set of cluster centers on a second go around
                 cluster = new_cluster
-            for x in data:
-                classList = []
-                classA = []
-                for u in cluster:
-                    classList.append(self.norm_2_distance(x,u))
-                classA.append(min(classList))
-            new_data['cluster'] = classA
+            classList = []
+            classA = []
+            for u in cluster:
+                classList.append(self.dist(data,u))
+            new_data = self.minimum(classList, new_data)
+            # new_data['cluster'] = pd.Series(classA)
                 
                 
             #calculate new cluster
