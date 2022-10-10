@@ -49,7 +49,8 @@ def main_Ian():
         print(D.edited_nearest_neighbors(train_set, 5))
     def f2():
         D = Abalone()
-        D.test(head = 30, k_space = range(4, 6), sigma_space=range(3, 5), epsilon_space = range(8, 10))
+        D.test(head = 30, k_space = range(4, 6), sigma_space=range(3, 5), epsilon_space = range(8, 10), appendCount=10,
+               seed = 1)
     def f3():
         D = Abalone()
         x1 = D.value(D.df, 4)
