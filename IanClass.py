@@ -13,6 +13,7 @@ class IanClass (Learning):
     def __init__(self, file, features, name, classLoc, replaceValue = None, classification = True):
         super().__init__(file=file, features=features, name=name, classLoc=classLoc, replaceValue = replaceValue,
                          classification = classification)
+        self.evaluator = self.classification_error if self.classification else self.mean_squared_error
 
     def tuner_split(self, df):
         tuner_index = random.sample(list(df.index), k=math.ceil(len(df.index) * .1))
@@ -117,55 +118,60 @@ class IanClass (Learning):
                 old_pred = test_set.index.map(pred_func(train_set))
                 new_pred = test_set.index.map(pred_func(edited_neighbors))
                 actual = test_set['Target'].to_list()
-                evaluator = self.classification_error if self.classification else self.mean_squared_error
-                if evaluator(old_pred, actual) >= evaluator(new_pred, actual):
+                if self.evaluator(old_pred, actual) >= self.evaluator(new_pred, actual):
                     return self.nnEstimator(edited_neighbors, k, sigma, epsilon, True, test_set)
         return nn_estimate_by_value
 
 
-    def getErrorDf(self, tuner_set, train_dict, evaluator):
+    def getErrorDf(self, tuner_set, train_dict, k_space, sigma_space, epsilon_space):
         def error(i):
-            (f, k) = my_space[i]
-            nne_for_hp = self.nnEstimator(train_dict[f], k, sigma=1, epsilon=2, edit=True, test_set=tuner_set)
+            (f, k, sigma, epsilon) = my_space[i]
+            nne_for_hp = self.nnEstimator(train_dict[f], k, sigma, epsilon, edit=True, test_set=tuner_set)
             pred_for_hp = tuner_set.index.map(self.comp(nne_for_hp, pf(self.value, tuner_set)))
-            return evaluator(pred_for_hp, tuner_target)
+            return self.evaluator(pred_for_hp, tuner_target)
 
         tuner_target = tuner_set['Target'].to_list()
         folds = pd.Index(range(10))
-        k_space = pd.Index(range(5, 10))
-        my_space = pd.Series(prod(folds, k_space))
+        my_space = pd.Series(prod(folds, k_space, sigma_space, epsilon_space))
         cols = list(zip(*my_space))
-        col_titles = ["Fold", "k"]
+        col_titles = ["Fold", "k", "sigma", "epsilon"]
         data = zip(col_titles, cols)
         error_df = pd.DataFrame(index=range(len(my_space)))
         for (title, col) in data:
             error_df[title] = col
         error_df["Error"] = pd.Series(range(len(my_space))).map(error)
+        error_df.to_csv(os.getcwd() + '\\' + str(self) + '\\' + "{}_Error.csv".format(str(self)))
         return error_df
 
-
-    def test(self):
-        df = pd.DataFrame(self.df.filter(items = range(30), axis=0).to_dict())
-        (learning_set, tuner_set) = self.tuner_split(df)
-        tuner_target = tuner_set['Target'].to_list()
-        evaluator = self.classification_error if self.classification else self.mean_squared_error
-        analysis_df = pd.DataFrame(columns = ["Best k", "Error"], index = range(10))
-        p = self.stratified_partition(10, df = learning_set)
-        predicted_classes = pd.Series(index = learning_set.index)
-        (train_dict, test_dict) = self.training_test_dicts(learning_set, p)
-        error_df = self.getErrorDf(tuner_set, train_dict, evaluator)
-        error_df.to_csv(os.getcwd() + '\\' + str(self) + '\\' + "{}_Error.csv".format(str(self)))
+    def getAnalysisDf(self, learning_set, train_dict, test_dict, error_df):
+        analysis_df = pd.DataFrame(columns=["k", "sigma", "epsilon", "Error"], index=range(10))
+        predicted_classes = pd.Series(index=learning_set.index)
         for i in range(10):
             fold_df = error_df.loc[lambda df: df['Fold'] == i]
-            min_error = fold_df["Error"].min()
-            best_k = int(fold_df.loc[lambda df: df['Error'] == min_error].iloc[0]["k"])
-            nne = self.nnEstimator(train_dict[i], best_k, sigma=1, epsilon=2, edit=True, test_set=test_dict[i])
-            pred_for_fold = pd.Series(p[i]).map(self.comp(nne, pf(self.value, test_dict[i])))
+            best_row = fold_df.loc[lambda df: df['Error'] == fold_df["Error"].min()].iloc[0]
+            (best_k, best_sigma, best_epsilon) = (int(best_row["k"]), best_row["sigma"], best_row["epsilon"])
+            nne = self.nnEstimator(train_dict[i], best_k, best_sigma, best_epsilon, edit=True, test_set=test_dict[i])
+            pred_for_fold = pd.Series(test_dict[i].index).map(self.comp(nne, pf(self.value, test_dict[i])))
             test_target = test_dict[i]['Target'].to_list()
-            predicted_classes.loc[p[i]] = pred_for_fold.values
-            analysis_df.loc[[i], ["Best k", "Error"]] = [best_k, evaluator(pred_for_fold, test_target)]
+            predicted_classes.loc[test_dict[i].index] = pred_for_fold.values
+            analysis_df.loc[[i], ["k", "sigma", "epsilon", "Error"]] = \
+                [best_k, best_sigma, best_epsilon, self.evaluator(pred_for_fold, test_target)]
         learning_set["Pred"] = predicted_classes
         learning_set.to_csv(os.getcwd() + '\\' + str(self) + '\\' + "{}_Pred.csv".format(str(self)))
         analysis_df.to_csv(os.getcwd() + '\\' + str(self) + '\\' + "{}_Analysis.csv".format(str(self)))
+
+
+    def test(self, k_space, head = None, sigma_space = [None], epsilon_space = [None]):
+        if head is None: head = self.df.shape[0]
+        df = pd.DataFrame(self.df.filter(items = range(head), axis=0).to_dict())
+        (learning_set, tuner_set) = self.tuner_split(df)
+        p = self.stratified_partition(10, df = learning_set)
+        (train_dict, test_dict) = self.training_test_dicts(learning_set, p)
+        error_df = self.getErrorDf(tuner_set, train_dict, k_space, sigma_space, epsilon_space)
+        self.getAnalysisDf(learning_set, train_dict, test_dict, error_df)
+
+
+
+
 
 
