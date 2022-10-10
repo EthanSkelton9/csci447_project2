@@ -20,7 +20,8 @@ def main_Ethan():
     H = Hardware()
     B = BreastCancer()
 
-    f = B.k_means(3)
+    f = G.k_means(7)
+    
     print(f)
 
 
@@ -62,5 +63,5 @@ def main_Ian():
 
 
 if __name__ == '__main__':
-    main_Ian()
-    # main_Ethan()
+    #main_Ian()
+    main_Ethan()

@@ -228,4 +228,4 @@ class EthanClass (Learning):
             new_cluster = self.calcCluster(new_data,k)
             cluster_same = self.clusterSame(new_cluster, cluster)
         
-        return cluster
+        return new_data['cluster']
