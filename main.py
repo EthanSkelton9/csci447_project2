@@ -20,7 +20,7 @@ def main_Ethan():
     H = Hardware()
     B = BreastCancer()
 
-    f = F.k_means(3)
+    f = B.k_means(3)
     print(f)
 
 
