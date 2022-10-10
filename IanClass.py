@@ -7,16 +7,16 @@ from ConfusionMatrix import ConfusionMatrix
 import functools
 from functools import partial as pf
 from functools import reduce as rd
+from itertools import product as prod
 
 class IanClass (Learning):
     def __init__(self, file, features, name, classLoc, replaceValue = None, classification = True):
         super().__init__(file=file, features=features, name=name, classLoc=classLoc, replaceValue = replaceValue,
                          classification = classification)
 
-    def tuners(self):
-        tuner_index = random.sample(self.df.index, k=math.ceil(len(self.index) * .1))
-        self.tuners = self.df.filter(items = tuner_index, axis=0)
-        self.learning_set = self.df.drop(tuner_index,  axis=0)
+    def tuner_split(self, df):
+        tuner_index = random.sample(list(df.index), k=math.ceil(len(df.index) * .1))
+        return (df.drop(tuner_index,  axis=0), df.filter(items = tuner_index, axis=0))
 
     def stratified_partition(self, k, df = None):
         if df is None: df = self.df
@@ -44,10 +44,15 @@ class IanClass (Learning):
         return p
 
         # separate into training and test sets
-    def training_test_sets(self, j, df, partition=None):
+    def training_test_dicts(self, df, partition=None):
         if partition is None: partition = self.stratified_partition(10)
-        train = partition[:j] + partition[j+1:]
-        return (df.filter(items=train, axis=0).reset_index(), df.filter(items=partition[j], axis=0).reset_index())
+        train_dict = {}
+        test_dict = {}
+        for i in range(len(partition)):
+            train_index = rd(lambda l1, l2: l1 + l2, partition[:i] + partition[i+1:])
+            train_dict[i] = df.filter(items=train_index, axis=0)
+            test_dict[i] = df.filter(items=partition[i], axis=0)
+        return (train_dict, test_dict)
 
     def norm_2_distance(self, x1, x2):
         return math.sqrt(pd.Series(self.features_ohe).map(lambda f: math.pow(x1[f] - x2[f], 2)).sum())
@@ -58,7 +63,7 @@ class IanClass (Learning):
     def p_Macro(self, predicted, actual):
         CM = ConfusionMatrix(self.classes)
         for i in range(len(predicted)):
-            CM.df.at[predicted[i], actual[i]] += int(predicted[i] == actual[i])
+            CM.addOne(predicted[i], actual[i])
         return CM.pmacro()
 
     def avg_Eval(self, f, g):
@@ -66,6 +71,22 @@ class IanClass (Learning):
             return (f(predicted, actual) + g(predicted, actual)) / 2
         return eval
 
+    def classification_error(self, predicted, actual):
+        return 1 - self.avg_Eval(self.zero_one_loss, self.p_Macro)(predicted, actual)
+
+    def mean_squared_error(self, predicted, actual):
+        return pd.Series(zip(predicted, actual)).map(lambda pair: math.pow(pair[0] - pair[1], 2)).sum() / len(predicted)
+
+    '''
+        nnEstimator returns a function that predicts the target of an example using k nearest neighbors
+        @param train_set - the set that we will use for our neighbors
+        @param k - the number of neighbors we will use to predict an example
+        @param sigma - the band width only used in regression sets
+        @param epsilon - the max tolerance used to determine if two regression examples have the same target for editing
+        @param edit - determines whether to use edited nearest neighbors or not
+        @param test_set - test set used to determine whether the edited neighbors improves performance
+        @return function that takes @param example x and returns predicted class or target value
+    '''
     def nnEstimator(self, train_set, k, sigma = None, epsilon = None, edit = False, test_set = None):
         def nn_estimate_by_value(x):
             distances = train_set.index.to_series().map(lambda i: self.norm_2_distance(x, self.value(train_set, i)))
@@ -74,7 +95,7 @@ class IanClass (Learning):
             if self.classification:
                 w = train_set.filter(items = nn, axis=0).groupby(by = ['Target'])['Target'].agg('count')
                 count = lambda cl: w.at[cl] if cl in w.index else 0
-                return rd(lambda cl1, cl2: x if count(cl1) > count(cl2) else cl2, self.classes)
+                return rd(lambda cl1, cl2: cl1 if count(cl1) > count(cl2) else cl2, self.classes)
             else:
                 def kernel(u):
                     return math.exp(-math.pow(u, 2) / sigma)
@@ -96,26 +117,55 @@ class IanClass (Learning):
                 old_pred = test_set.index.map(pred_func(train_set))
                 new_pred = test_set.index.map(pred_func(edited_neighbors))
                 actual = test_set['Target'].to_list()
-                evaluator = self.avg_Eval(self.zero_one_loss, self.p_Macro)
-                if evaluator(old_pred, actual) <= evaluator(new_pred, actual):
+                evaluator = self.classification_error if self.classification else self.mean_squared_error
+                if evaluator(old_pred, actual) >= evaluator(new_pred, actual):
                     return self.nnEstimator(edited_neighbors, k, sigma, epsilon, True, test_set)
-                else:
-                    return nn_estimate_by_value
-            else:
-                return nn_estimate_by_value
-        else:
-            return nn_estimate_by_value
+        return nn_estimate_by_value
+
+
+    def getErrorDf(self, tuner_set, train_dict, evaluator):
+        def error(i):
+            (f, k) = my_space[i]
+            nne_for_hp = self.nnEstimator(train_dict[f], k, sigma=1, epsilon=2, edit=True, test_set=tuner_set)
+            pred_for_hp = tuner_set.index.map(self.comp(nne_for_hp, pf(self.value, tuner_set)))
+            return evaluator(pred_for_hp, tuner_target)
+
+        tuner_target = tuner_set['Target'].to_list()
+        folds = pd.Index(range(10))
+        k_space = pd.Index(range(5, 10))
+        my_space = pd.Series(prod(folds, k_space))
+        cols = list(zip(*my_space))
+        col_titles = ["Fold", "k"]
+        data = zip(col_titles, cols)
+        error_df = pd.DataFrame(index=range(len(my_space)))
+        for (title, col) in data:
+            error_df[title] = col
+        error_df["Error"] = pd.Series(range(len(my_space))).map(error)
+        return error_df
+
 
     def test(self):
-        pred_df = pd.DataFrame(self.df.filter(items=range(50), axis=0).to_dict())
-        p = self.stratified_partition(10, df = pred_df)
-        predicted_classes = pd.Series(pred_df.shape[0] * [None])
+        df = pd.DataFrame(self.df.filter(items = range(30), axis=0).to_dict())
+        (learning_set, tuner_set) = self.tuner_split(df)
+        tuner_target = tuner_set['Target'].to_list()
+        evaluator = self.classification_error if self.classification else self.mean_squared_error
+        analysis_df = pd.DataFrame(columns = ["Best k", "Error"], index = range(10))
+        p = self.stratified_partition(10, df = learning_set)
+        predicted_classes = pd.Series(index = learning_set.index)
+        (train_dict, test_dict) = self.training_test_dicts(learning_set, p)
+        error_df = self.getErrorDf(tuner_set, train_dict, evaluator)
+        error_df.to_csv(os.getcwd() + '\\' + str(self) + '\\' + "{}_Error.csv".format(str(self)))
         for i in range(10):
-            (train_set, test_set) = self.training_test_sets(i, pred_df, p)
-            nne = self.nnEstimator(train_set, 5, sigma = 1, epsilon = 2, edit = True, test_set = test_set)
-            classes = pd.Series(p[i]).map(self.comp(nne, pf(self.value, self.df)))
-            predicted_classes.iloc[p[i]] = classes
-        pred_df["Pred"] = predicted_classes
-        pred_df.to_csv(os.getcwd() + '\\' + str(self) + '\\' + "{}_Pred.csv".format(str(self)))
+            fold_df = error_df.loc[lambda df: df['Fold'] == i]
+            min_error = fold_df["Error"].min()
+            best_k = int(fold_df.loc[lambda df: df['Error'] == min_error].iloc[0]["k"])
+            nne = self.nnEstimator(train_dict[i], best_k, sigma=1, epsilon=2, edit=True, test_set=test_dict[i])
+            pred_for_fold = pd.Series(p[i]).map(self.comp(nne, pf(self.value, test_dict[i])))
+            test_target = test_dict[i]['Target'].to_list()
+            predicted_classes.loc[p[i]] = pred_for_fold.values
+            analysis_df.loc[[i], ["Best k", "Error"]] = [best_k, evaluator(pred_for_fold, test_target)]
+        learning_set["Pred"] = predicted_classes
+        learning_set.to_csv(os.getcwd() + '\\' + str(self) + '\\' + "{}_Pred.csv".format(str(self)))
+        analysis_df.to_csv(os.getcwd() + '\\' + str(self) + '\\' + "{}_Analysis.csv".format(str(self)))
 
 

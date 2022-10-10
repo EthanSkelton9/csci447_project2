@@ -13,9 +13,9 @@ class ConfusionMatrix:
     def __str__(self):
         return str(self.df)
 
-    def addOne(self, predicted, actual):
-        if predicted in self.classes and actual in self.classes:
-            self.df.at[predicted, actual] += 1
+    def addOne(self, predicted_class, actual_class):
+        if predicted_class in self.classes and actual_class in self.classes:
+            self.df.at[predicted_class, actual_class] += 1
 
     def truepositive(self, cl):
         return self.df.at[cl, cl]
