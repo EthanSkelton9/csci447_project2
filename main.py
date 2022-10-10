@@ -49,7 +49,7 @@ def main_Ian():
         (train_set, test_set) = D.training_test_sets(0, D.df, p)
         print(D.edited_nearest_neighbors(train_set, 5))
     def f2():
-        D = Abalone()
+        D = SoyBean()
         D.test(head = 30, k_space = range(4, 6), sigma_space=range(3, 5), epsilon_space = range(8, 10), appendCount=10,
                seed = 1)
     def f3():
@@ -63,5 +63,5 @@ def main_Ian():
 
 
 if __name__ == '__main__':
-    #main_Ian()
-    main_Ethan()
+    main_Ian()
+    #main_Ethan()
