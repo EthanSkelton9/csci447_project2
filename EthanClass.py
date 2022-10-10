@@ -173,9 +173,8 @@ class EthanClass (Learning):
         distances = []
         for index, row in data.iterrows():
             r = []
-            for i in range(len(row)):
+            for i in range(len(row)):    
                 r.append(row[i])
-
             d = []
             for r1, c1 in zip(r, centroid):
                 item = r1 - c1
@@ -205,13 +204,18 @@ class EthanClass (Learning):
     def k_means(self, k):
         data = self.df 
         cluster_same = True # initialize 
+
+        new_data = data
+        if "Target" in new_data:
+            new_data.pop("Target")
         
         #initialize cluster list of centroids:
         cluster = []
         new_cluster = []
-        cluster = self.randCluster(data, k)
-        new_data = data
+        cluster = self.randCluster(new_data, k)
+     
         new_data['cluster'] = 0
+        
         
         while cluster_same:
             if new_cluster != []: #set cluster to new set of cluster centers on a second go around
