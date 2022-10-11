@@ -1,6 +1,7 @@
 from k_nearest import K_Nearest
+from IBL import IBL
 
-class BreastCancer (K_Nearest):
+class BreastCancer (IBL):
     def __init__(self):
         #list of feature names(excluding class)
         features = [   #column names class at end

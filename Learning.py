@@ -53,7 +53,11 @@ class Learning:
         elif (classLoc == 'end'):  # if the class column is at the end -> continue as normal
             self.df.columns = self.features + ['Target']
         else:
-            print('Not sure where to place Class column')
+            index = classLoc
+            self.df.columns = self.features[:index] + ['Target'] + self.features[index:]
+            last_column = self.df.pop('Target')
+            self.df.insert(len(self.df.columns), 'Target', last_column)
+
 
     def one_hot_encoding(self):
         (features_numerical, features_categorical) = ([], [])

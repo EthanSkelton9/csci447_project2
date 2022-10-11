@@ -43,13 +43,14 @@ def main_Ethan():
 
     
 def main_Ian():
-    D = BreastCancer()
-    D.Ian_test(k_space = range(4, 9), appendCount = 5, seed = 1)
+    D = Hardware()
+    D.Ian_test(k_space = range(4, 9), sigma_space = range(4, 14), appendCount = 25, seed = 2)
     # NN
     #-----------------
     # SoyBean Complete
     # Glass Complete
     # BreastCancer Complete
+    #
 
 
 

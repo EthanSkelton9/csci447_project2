@@ -1,6 +1,7 @@
 from k_nearest import K_Nearest
+from IBL import IBL
 
-class Glass (K_Nearest):
+class Glass (IBL):
     def __init__(self):
         #list of feature names(excluding class)
         features = [ #Class at end
