@@ -43,21 +43,13 @@ def main_Ethan():
 
     
 def main_Ian():
-    def f1():
-        D = SoyBean()
-        p = D.stratified_partition(10)
-        (train_set, test_set) = D.training_test_sets(0, D.df, p)
-        print(D.edited_nearest_neighbors(train_set, 5))
-    def f2():
-        D = Abalone()
-        D.test(head = 30, k_space = range(4, 6), sigma_space=range(3, 5), epsilon_space = range(8, 10), appendCount=20,
-               seed = 1)
-    def f3():
-        D = Abalone()
-        x1 = D.value(D.df, 4)
-        x2 = D.value(D.df, 7)
-        print(D.norm_2_distance(x1, x2))
-    f2()
+    D = BreastCancer()
+    D.Ian_test(k_space = range(4, 9), appendCount = 5, seed = 1)
+    # NN
+    #-----------------
+    # SoyBean Complete
+    # Glass Complete
+    # BreastCancer Complete
 
 
 

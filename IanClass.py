@@ -9,6 +9,7 @@ from functools import partial as pf
 from functools import reduce as rd
 from itertools import product as prod
 import numpy as np
+import time
 
 class IanClass (Learning):
     def __init__(self, file, features, name, classLoc, replaceValue = None, classification = True):
@@ -21,7 +22,7 @@ class IanClass (Learning):
         tuner_index = random.sample(list(df.index), k=math.ceil(len(df.index) * .1))
         return (df.drop(tuner_index,  axis=0), df.filter(items = tuner_index, axis=0))
 
-    def stratified_partition(self, k, df = None):
+    def stratified_partition_Ian(self, k, df = None):
         if df is None: df = self.df
         p = [[] for i in range(k)]
         if self.classification:
@@ -125,13 +126,14 @@ class IanClass (Learning):
         return nn_estimate_by_value
 
 
-    def getErrorDf(self, tuner_set, train_dict, k_space, sigma_space, epsilon_space, appendCount = None, csv = None):
+    def getErrorDf_NN(self, tuner_set, train_dict, k_space, sigma_space, epsilon_space, appendCount = None, csv = None):
         def error(i):
             (f, k, sigma, epsilon) = my_space[i]
-            nne_for_hp = self.nnEstimator(train_dict[f], k, sigma, epsilon, edit=True, test_set=tuner_set)
+            nne_for_hp = self.nnEstimator(train_dict[f], k, sigma, epsilon, edit=False, test_set=tuner_set)
             pred_for_hp = tuner_set.index.map(self.comp(nne_for_hp, pf(self.value, tuner_set)))
             return self.evaluator(pred_for_hp, tuner_target)
 
+        start_time = time.time()
         tuner_target = tuner_set['Target'].to_list()
         folds = pd.Index(range(10))
         my_space = pd.Series(prod(folds, k_space, sigma_space, epsilon_space))
@@ -147,14 +149,13 @@ class IanClass (Learning):
             start = 0
         else:
             error_df = pd.read_csv(csv, index_col=0)
-            print("Error Column: {}".format(error_df["Error"]))
             filtered = error_df["Error"].loc[pd.isnull(error_df["Error"])]
             start = filtered.index[0]
-            print("Start: {}".format(start))
         end = df_size if appendCount is None else min(start + appendCount, df_size)
         error_df["Error"][start:end] = pd.Series(range(start, end)).map(error).values
-        error_df.to_csv(os.getcwd() + '\\' + str(self) + '\\' + "{}_Error.csv".format(str(self)))
-        error_df.to_csv(os.getcwd() + '\\' + str(self) + '\\' + "{}_Error_From_{}_To_{}.csv".format(str(self), start, end))
+        error_df.to_csv(os.getcwd() + '\\' + str(self) + '\\' + "{}_Error_NN.csv".format(str(self)))
+        error_df.to_csv(os.getcwd() + '\\' + str(self) + '\\' + "{}_Error_NN_From_{}_To_{}.csv".format(str(self), start, end))
+        print("Time Elapsed: {} Seconds".format(time.time() - start_time))
         return error_df
 
     def getAnalysisDf(self, learning_set, train_dict, test_dict, error_df):
@@ -175,16 +176,16 @@ class IanClass (Learning):
         analysis_df.to_csv(os.getcwd() + '\\' + str(self) + '\\' + "{}_Analysis.csv".format(str(self)))
 
 
-    def test(self, k_space, head = None, sigma_space = [None], epsilon_space = [None], appendCount = None, seed = None):
+    def Ian_test(self, k_space, head = None, sigma_space = [None], epsilon_space = [None], appendCount = None, seed = None):
         if head is None: head = self.df.shape[0]
         if seed is not None: self.seed = seed
         df = pd.DataFrame(self.df.filter(items = range(head), axis=0).to_dict())
         (learning_set, tuner_set) = self.tuner_split(df)
-        p = self.stratified_partition(10, df = learning_set)
+        p = self.stratified_partition_Ian(10, learning_set)
         (train_dict, test_dict) = self.training_test_dicts(learning_set, p)
-        csv = os.getcwd() + '\\' + str(self) + '\\' + "{}_Error.csv".format(str(self))
-        error_df = pd.read_csv(csv, index_col=0)
-        error_df = self.getErrorDf(tuner_set, train_dict, k_space, sigma_space, epsilon_space, appendCount, csv)
+        csv = os.getcwd() + '\\' + str(self) + '\\' + "{}_Error_NN.csv".format(str(self))
+        # error_df = pd.read_csv(csv, index_col=0)
+        error_df = self.getErrorDf_NN(tuner_set, train_dict, k_space, sigma_space, epsilon_space, appendCount, csv)
         # self.getAnalysisDf(learning_set, train_dict, test_dict, error_df)
 
 

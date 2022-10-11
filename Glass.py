@@ -18,4 +18,4 @@ class Glass (K_Nearest):
 
         #initiate glass test set
         super().__init__(file='glass.csv', features = features, name = 'Glass', classLoc = 'end', replaceValue = None, classification =
-                         False)
+                         True)

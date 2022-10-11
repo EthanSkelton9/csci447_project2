@@ -18,4 +18,4 @@ class BreastCancer (K_Nearest):
 
         #initiate breast cancer test set
         super().__init__(file = 'breast-cancer-wisconsin.csv', features = features,
-                       name = "BreastCancer", classLoc = 'end', replaceValue = '3', classification = False)
+                       name = "BreastCancer", classLoc = 'end', replaceValue = '3', classification = True)
