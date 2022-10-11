@@ -23,7 +23,6 @@ class IBL (IanClass, EthanClass):
     def clusterEstimator(self, train_set, k, sigma = None):
         def estimate(i):
             clusters = self.k_means(k)
-            print("Cluster: {}".format(clusters))
             cluster_label = clusters[i]
             cluster = clusters.loc[lambda df: df == cluster_label].index
             index_intersection = pd.Index(set(cluster).intersection(set(train_set.index)))
@@ -34,21 +33,15 @@ class IBL (IanClass, EthanClass):
         return estimate
 
 
-    def getErrorDf(self, tuner_set, train_dict, k_space, sigma_space, epsilon_space, appendCount = None, csv = None):
+    def getErrorDf_ClusEst(self, tuner_set, train_dict, k_space, sigma_space, appendCount = None, csv = None):
         def error(i):
-            (f, k, sigma, epsilon) = my_space[i]
-            nne_for_hp = self.nnEstimator(train_dict[f], k, sigma, epsilon, edit=True, test_set=tuner_set)
-            pred_for_hp = tuner_set.index.map(self.comp(nne_for_hp, pf(self.value, tuner_set)))
-            return self.evaluator(pred_for_hp, tuner_target)
-
-        def error2(i):
             (f, k, sigma, _) = my_space[i]
             pred_for_hp = tuner_set.index.map(self.clusterEstimator(train_dict[f], k, sigma))
             return self.evaluator(pred_for_hp, tuner_target)
 
         tuner_target = tuner_set['Target'].to_list()
         folds = pd.Index(range(10))
-        my_space = pd.Series(prod(folds, k_space, sigma_space, epsilon_space))
+        my_space = pd.Series(prod(folds, k_space, sigma_space))
         df_size = len(my_space)
         if csv is None:
             cols = list(zip(*my_space))
@@ -66,9 +59,9 @@ class IBL (IanClass, EthanClass):
             start = filtered.index[0]
             print("Start: {}".format(start))
         end = df_size if appendCount is None else min(start + appendCount, df_size)
-        error_df["Error"][start:end] = pd.Series(range(start, end)).map(error2).values
-        error_df.to_csv(os.getcwd() + '\\' + str(self) + '\\' + "{}_Error.csv".format(str(self)))
-        error_df.to_csv(os.getcwd() + '\\' + str(self) + '\\' + "{}_Error_From_{}_To_{}.csv".format(str(self), start, end))
+        error_df["Error"][start:end] = pd.Series(range(start, end)).map(error).values
+        error_df.to_csv(os.getcwd() + '\\' + str(self) + '\\' + "{}_Error_ClusEst.csv".format(str(self)))
+        error_df.to_csv(os.getcwd() + '\\' + str(self) + '\\' + "{}_Error_From_ClusEst_{}_To_{}.csv".format(str(self), start, end))
         return error_df
 
 
@@ -79,7 +72,7 @@ class IBL (IanClass, EthanClass):
         (learning_set, tuner_set) = self.tuner_split(df)
         p = self.stratified_partition(10, df = learning_set)
         (train_dict, test_dict) = self.training_test_dicts(learning_set, p)
-        # csv = os.getcwd() + '\\' + str(self) + '\\' + "{}_Error.csv".format(str(self))
+        # csv = os.getcwd() + '\\' + str(self) + '\\' + "{}_Error_ClusEst.csv".format(str(self))
         error_df = self.getErrorDf(tuner_set, train_dict, k_space, sigma_space, epsilon_space, appendCount)
         # self.getAnalysisDf(learning_set, train_dict, test_dict, error_df)
 
