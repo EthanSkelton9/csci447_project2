@@ -64,6 +64,23 @@ class IBL (IanClass, EthanClass):
         error_df.to_csv(os.getcwd() + '\\' + str(self) + '\\' + "{}_Error_From_ClusEst_{}_To_{}.csv".format(str(self), start, end))
         return error_df
 
+    def getAnalysisDf_ClusEst(self, learning_set, train_dict, test_dict, error_df):
+        analysis_df = pd.DataFrame(columns=["k", "sigma", "Error"], index=range(10))
+        predicted_classes = pd.Series(index=learning_set.index)
+        for i in range(10):
+            fold_df = error_df.loc[lambda df: df['Fold'] == i]
+            best_row = fold_df.loc[lambda df: df['Error'] == fold_df["Error"].min()].iloc[0]
+            (best_k, best_sigma) = (int(best_row["k"]), best_row["sigma"])
+            # nne = self.nnEstimator(train_dict[i], best_k, best_sigma, best_epsilon, edit=True, test_set=test_dict[i])
+            # pred_for_fold = pd.Series(test_dict[i].index).map(self.comp(nne, pf(self.value, test_dict[i])))
+            test_target = test_dict[i]['Target'].to_list()
+            predicted_classes.loc[test_dict[i].index] = pred_for_fold.values
+            analysis_df.loc[[i], ["k", "sigma", "epsilon", "Error"]] = \
+                [best_k, best_sigma, best_epsilon, self.evaluator(pred_for_fold, test_target)]
+        learning_set["Pred"] = predicted_classes
+        learning_set.to_csv(os.getcwd() + '\\' + str(self) + '\\' + "{}_Pred.csv".format(str(self)))
+        analysis_df.to_csv(os.getcwd() + '\\' + str(self) + '\\' + "{}_Analysis.csv".format(str(self)))
+
 
     def test(self, k_space, head = None, sigma_space = [None], epsilon_space = [None], appendCount = None, seed = None):
         if head is None: head = self.df.shape[0]
