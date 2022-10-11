@@ -44,7 +44,7 @@ def main_Ethan():
     
 def main_Ian():
     D = Hardware()
-    D.Ian_test(k_space = range(4, 9), sigma_space = range(4, 14), appendCount = 25, seed = 2)
+    D.Ian_test(k_space = range(4, 9), sigma_space = range(4, 14), appendCount = 30, seed = 2)
     # NN
     #-----------------
     # SoyBean Complete
