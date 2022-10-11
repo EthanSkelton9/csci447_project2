@@ -14,28 +14,29 @@ class EthanClass (Learning):
         self.tuners = self.df.filter(items = tuner_index, axis=0)
         self.learning_set = self.df.drop(tuner_index,  axis=0)
 
-    def stratified_partition(self, k):
+    def stratified_partition(self, k, df = None):
+        if df is None: df = self.df
         p = [[] for i in range(k)]
         if self.classification:
-            def class_partition(df, p, c):
-                n = df.shape[0]
+            def class_partition(classdf, p, c):
+                n = classdf.shape[0]
                 (q, r) = (n // k, n % k)
                 j = 0
                 for i in range(k):
                     z = (i + c) % k
-                    p[z] = p[z] + [df.at[x, 'index'] for x in range(j, j + q + int(i < r))]
+                    p[z] = p[z] + [classdf.at[x, 'index'] for x in range(j, j + q + int(i < r))]
                     j += q + int(i < r)
                 return (p, c + r)
             c = 0
             for cl in self.classes:
-                df = self.df[self.df['Target'] == cl].reset_index()
-                (p, c) = class_partition(df, p, c)
+                classdf = df[df['Target'] == cl].reset_index()
+                (p, c) = class_partition(classdf, p, c)
         else:
-            df = self.df.sort_values(by=['Target']).reset_index()
-            n = df.shape[0]
+            sorted_df = df.sort_values(by=['Target']).reset_index()
+            n = sorted_df.shape[0]
             (q, r) = (n // k, n % k)
             for i in range(k):
-                p[i] = p[i] + [df.at[i + c * k, 'index'] for c in range(q + int(i < r))]
+                p[i] = p[i] + [sorted_df.at[i + c * k, 'index'] for c in range(q + int(i < r))]
         return p
 
         # separate into training and test sets

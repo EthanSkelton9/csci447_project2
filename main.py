@@ -1,6 +1,5 @@
 from re import A
 from Hardware import Hardware
-from k_nearest import K_Nearest
 from SoyBean import SoyBean
 from Abalone import Abalone
 from Glass import Glass
