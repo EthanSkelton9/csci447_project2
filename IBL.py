@@ -87,7 +87,7 @@ class IBL (IanClass, EthanClass):
         if seed is not None: self.seed = seed
         df = pd.DataFrame(self.df.filter(items = range(head), axis=0).to_dict())
         (learning_set, tuner_set) = self.tuner_split(df)
-        p = self.stratified_partition(10, df = learning_set)
+        p = self.stratified_partition_Ian(10, df = learning_set)
         (train_dict, test_dict) = self.training_test_dicts(learning_set, p)
         csv = os.getcwd() + '\\' + str(self) + '\\' + "{}_Error_ClusEst.csv".format(str(self))
         error_df = self.getErrorDf_ClusEst(tuner_set, train_dict, k_space, sigma_space, appendCount,csv)

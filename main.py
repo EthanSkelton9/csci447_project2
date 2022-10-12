@@ -22,7 +22,7 @@ def main_Ethan():
     S = SoyBean()
 
     #G.test(k_space = range(4, 9), appendCount = 30, seed = 2)
-    A    .test(k_space = range(4, 9), sigma_space = range(4,14), appendCount = 30, seed = 2)
+    H.test(k_space = range(4, 9), sigma_space = range(4,14), appendCount = 30, seed = 2)
 
     
 def main_Ian():
@@ -40,5 +40,5 @@ def main_Ian():
 
 
 if __name__ == '__main__':
-    main_Ian()
-    #main_Ethan()
+    #main_Ian()
+    main_Ethan()
