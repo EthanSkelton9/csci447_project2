@@ -136,3 +136,38 @@ class EthanClass (Learning):
             
         
         return new_data['cluster']
+
+    def k_means_cluster(self, k):
+        data = self.df 
+        cluster_same = True # initialize 
+
+        new_data = data
+        if "Target" in new_data:
+            new_data.pop("Target")
+        
+        #initialize cluster list of centroids:
+        cluster = []
+        new_cluster = []
+        cluster = self.randCluster(new_data, k)
+     
+        new_data['cluster'] = 0
+        
+        
+        while cluster_same:
+            
+            if new_cluster != []: #set cluster to new set of cluster centers on a second go around
+                cluster = new_cluster
+            classList = []
+            classA = []
+            for u in cluster:
+                classList.append(self.d(data,u))
+            new_data = self.minimum(classList, new_data)
+            # new_data['cluster'] = pd.Series(classA)
+                
+                
+            #calculate new cluster
+            new_cluster = self.calcCluster(new_data,k)
+            cluster_same = self.clusterSame(new_cluster, cluster)
+            
+        
+        return new_data

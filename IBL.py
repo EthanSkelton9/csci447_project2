@@ -71,7 +71,7 @@ class IBL (IanClass, EthanClass):
             fold_df = error_df.loc[lambda df: df['Fold'] == i]
             best_row = fold_df.loc[lambda df: df['Error'] == fold_df["Error"].min()].iloc[0]
             (best_k, best_sigma) = (int(best_row["k"]), best_row["sigma"])
-            ce = self.clusterEstimator(train_dict[i], best_k, best_sigma, edit=True, test_set=test_dict[i])
+            ce = self.clusterEstimator(train_dict[i], best_k, best_sigma)
             pred_for_fold = pd.Series(test_dict[i].index).map(self.comp(ce, pf(self.value, test_dict[i])))
             test_target = test_dict[i]['Target'].to_list()
             predicted_classes.loc[test_dict[i].index] = pred_for_fold.values
@@ -90,8 +90,9 @@ class IBL (IanClass, EthanClass):
         p = self.stratified_partition_Ian(10, df = learning_set)
         (train_dict, test_dict) = self.training_test_dicts(learning_set, p)
         csv = os.getcwd() + '\\' + str(self) + '\\' + "{}_Error_ClusEst.csv".format(str(self))
-        error_df = self.getErrorDf_ClusEst(tuner_set, train_dict, k_space, sigma_space, appendCount,csv)
-        #self.getAnalysisDf(learning_set, train_dict, test_dict, error_df)
+        #error_df = self.getErrorDf_ClusEst(tuner_set, train_dict, k_space, sigma_space, appendCount,csv)
+        error_df = pd.read_csv(csv)
+        self.getAnalysisDf_ClusEst(learning_set, train_dict, test_dict, error_df)
 
 
 

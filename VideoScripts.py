@@ -11,6 +11,7 @@ from itertools import product as prod
 import numpy as np
 import time
 import IanClass
+import EthanClass
 
 
 def show_partitions(data):
@@ -38,13 +39,21 @@ def show_kernel(data, sigma):
     print("Since it is:")
     print(dist)
     print("Away from the first point")
-# def show_regression():
 
+#def show_regression(data):
+   #x1 = data.df.iloc[1] 
 # def show_classification():
 
 # def editing():
 
-# def cluster():
+def cluster(data):
+    print(data.df.iloc[1])
+    d = data.k_means_cluster(4)
+    f = d.loc["Date"]
+    print(f)
+    print(d)
+
+
 
 
 # def showPrefRegression():
