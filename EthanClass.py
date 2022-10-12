@@ -3,6 +3,7 @@ import os
 import math
 import random
 from Learning import Learning
+import numpy as np
 
 class EthanClass (Learning):
     def __init__(self, file, features, name, classLoc, replaceValue = None, classification = True):
@@ -111,28 +112,36 @@ class EthanClass (Learning):
                 max_P = y
         return argmax
 
-    def test(self):
-        p = self.stratified_partition(10)
-        pred_df = pd.DataFrame(self.df.to_dict())
-        predicted_classes = pd.Series(self.df.shape[0] * [None])
-        for i in range(len(p)):
-            (train_set, test_set) = self.training_test_sets(i, self.df, p)
-            classes = pd.Series(p[i]).map(lambda j: self.nearestneighborEstimator(train_set, self.value(self.df, j), 5))
-            predicted_classes.iloc[p[i]] = classes
-        pred_df["Pred"] = predicted_classes
-        pred_df.to_csv(os.getcwd() + '\\' + str(self) + '\\' + "{}_Pred.csv".format(str(self)))
+    # def test(self):
+    #     p = self.stratified_partition(10)
+    #     pred_df = pd.DataFrame(self.df.to_dict())
+    #     predicted_classes = pd.Series(self.df.shape[0] * [None])
+    #     for i in range(len(p)):
+    #         (train_set, test_set) = self.training_test_sets(i, self.df, p)
+    #         classes = pd.Series(p[i]).map(lambda j: self.nearestneighborEstimator(train_set, self.value(self.df, j), 5))
+    #         predicted_classes.iloc[p[i]] = classes
+    #     pred_df["Pred"] = predicted_classes
+    #     pred_df.to_csv(os.getcwd() + '\\' + str(self) + '\\' + "{}_Pred.csv".format(str(self)))
 
 
 
     def centroid(self, data, rand):
         avg = []
-        if rand:
-            avg = data.sample().values.tolist()
-            avg = avg[0]
+        if not data.empty:
+
+        
+            if rand:
+                avg = data.sample().values.tolist()
+                avg = avg[0]
+            else:
+                for col in data:
+                    val = np.exp(data[col].sum() / len(data[col]))
+                    avg.append(val)
+            return avg
         else:
-            for col in data:
-                avg.append(data[col].sum() / len(data[col]))
-        return avg
+            return avg
+        
+
     '''
     clusterSame returns whether two cluster list are the same
     @param nc - new cluster that was created from data
@@ -219,6 +228,7 @@ class EthanClass (Learning):
         
         
         while cluster_same:
+            
             if new_cluster != []: #set cluster to new set of cluster centers on a second go around
                 cluster = new_cluster
             classList = []
@@ -232,10 +242,12 @@ class EthanClass (Learning):
             #calculate new cluster
             new_cluster = self.calcCluster(new_data,k)
             cluster_same = self.clusterSame(new_cluster, cluster)
+            
         
         return new_data['cluster']
 
     def test(self, k_space, head = None, sigma_space = [None], epsilon_space = [None], appendCount = None, seed = None):
+    
         if head is None: head = self.df.shape[0]
         if seed is not None: self.seed = seed
         df = pd.DataFrame(self.df.filter(items = range(head), axis=0).to_dict())

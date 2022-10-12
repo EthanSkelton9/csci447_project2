@@ -18,8 +18,10 @@ def main_Ethan():
     G = Glass()
     H = Hardware()
     B = BreastCancer()
+    A = Abalone()
+    S = SoyBean()
 
-    G.test(k_space = range(4, 9), sigma_space = range(4, 14), appendCount = 30, seed = 2)
+    A.test(k_space = range(4, 9), sigma_space = range(4, 14), appendCount = 30, seed = 2)
     
 
 
