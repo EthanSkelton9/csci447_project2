@@ -3,127 +3,18 @@ import os
 import math
 import random
 from Learning import Learning
+from ConfusionMatrix import ConfusionMatrix
+import functools
+from functools import partial as pf
+from functools import reduce as rd
+from itertools import product as prod
 import numpy as np
+import time
 
 class EthanClass (Learning):
     def __init__(self, file, features, name, classLoc, replaceValue = None, classification = True):
         super().__init__(file=file, features=features, name=name, classLoc=classLoc, replaceValue = replaceValue,
                          classification = classification)
-
-    def tuners(self):
-        tuner_index = random.sample(self.df.index, k=math.ceil(len(self.index) * .1))
-        self.tuners = self.df.filter(items = tuner_index, axis=0)
-        self.learning_set = self.df.drop(tuner_index,  axis=0)
-
-    def stratified_partition(self, k, df = None):
-        if df is None: df = self.df
-        p = [[] for i in range(k)]
-        if self.classification:
-            def class_partition(classdf, p, c):
-                n = classdf.shape[0]
-                (q, r) = (n // k, n % k)
-                j = 0
-                for i in range(k):
-                    z = (i + c) % k
-                    p[z] = p[z] + [classdf.at[x, 'index'] for x in range(j, j + q + int(i < r))]
-                    j += q + int(i < r)
-                return (p, c + r)
-            c = 0
-            for cl in self.classes:
-                classdf = df[df['Target'] == cl].reset_index()
-                (p, c) = class_partition(classdf, p, c)
-        else:
-            sorted_df = df.sort_values(by=['Target']).reset_index()
-            n = sorted_df.shape[0]
-            (q, r) = (n // k, n % k)
-            for i in range(k):
-                p[i] = p[i] + [sorted_df.at[i + c * k, 'index'] for c in range(q + int(i < r))]
-        return p
-
-        # separate into training and test sets
-    def training_test_sets(self, j, df, partition=None):
-        if partition is None: partition = self.stratified_partition(10)
-        train = []
-        for i in range(len(partition)):
-            if j != i:
-                train += partition[i]
-            else:
-                test = partition[i]
-        return (df.filter(items=train, axis=0).reset_index(), df.filter(items=test, axis=0).reset_index())
-
-    def norm_2_distance(self, x1, x2):
-        d = 0
-        for f_num in self.features_ohe:
-            d += math.pow(x1[f_num] - x2[f_num], 2)
-        return math.sqrt(d)
-
-
-    def naiveEstimator(self, x, h):
-        def P(self, x, cl, h):
-            def kernel(u):
-                return int(abs(u) < 1 / 2)
-            p = 0
-            for t in self.train_set[self.train_set['Target'] == cl].index:
-                p += kernel(self.norm_2_distance(x, self.value(self.train_set, t)) / h)
-            return p
-        (argmax, max_P) = (None, 0)
-        for cl in self.classes:
-            y = P(x, cl, h)
-            if y > max_P:
-                argmax = cl
-                max_P = y
-        return argmax
-
-    def kernelEstimator(self, x, h):
-        def P(x, cl):
-            def kernel(u):
-                return math.exp(-math.pow(u, 2)/2) / math.sqrt(2 * math.pi)
-            p = 0
-            for t in self.train_set[self.train_set['Target'] == cl].index:
-                p += kernel(self.norm_2_distance(x, self.value(self.train_set, t)) / h)
-            return p
-        (argmax, max_P) = (None, 0)
-        for cl in self.classes:
-            y = P(x, cl)
-            if y > max_P:
-                argmax = cl
-                max_P = y
-        return argmax
-
-
-
-    def nearestneighborEstimator(self, train_set, x, k):
-        def nearestneighbors_naive():
-            distances = train_set.index.map(lambda i: self.norm_2_distance(x, self.value(train_set, i)))
-            (_, indices) = distances.sort_values(return_indexer=True)
-            return indices.take(range(k))
-        nn = nearestneighbors_naive()
-        nn = train_set.filter(items = nn, axis=0).groupby(by = ['Target'])['Target'].agg('count')
-        def P(x, cl):
-            if cl in nn.index:
-                return nn.at[cl] / k
-            else:
-                return 0
-        (argmax, max_P) = (None, 0)
-        for cl in self.classes:
-            y = P(x, cl)
-            if y > max_P:
-                argmax = cl
-                max_P = y
-        return argmax
-
-    # def test(self):
-    #     p = self.stratified_partition(10)
-    #     pred_df = pd.DataFrame(self.df.to_dict())
-    #     predicted_classes = pd.Series(self.df.shape[0] * [None])
-    #     for i in range(len(p)):
-    #         (train_set, test_set) = self.training_test_sets(i, self.df, p)
-    #         classes = pd.Series(p[i]).map(lambda j: self.nearestneighborEstimator(train_set, self.value(self.df, j), 5))
-    #         predicted_classes.iloc[p[i]] = classes
-    #     pred_df["Pred"] = predicted_classes
-    #     pred_df.to_csv(os.getcwd() + '\\' + str(self) + '\\' + "{}_Pred.csv".format(str(self)))
-
-
 
     def centroid(self, data, rand):
         avg = []
@@ -179,7 +70,7 @@ class EthanClass (Learning):
             c.append(self.centroid(data, rand))
         return c
     
-    def dist(self, data, centroid):
+    def d(self, data, centroid):
         distances = []
         for index, row in data.iterrows():
             r = []
@@ -234,7 +125,7 @@ class EthanClass (Learning):
             classList = []
             classA = []
             for u in cluster:
-                classList.append(self.dist(data,u))
+                classList.append(self.d(data,u))
             new_data = self.minimum(classList, new_data)
             # new_data['cluster'] = pd.Series(classA)
                 
@@ -245,15 +136,3 @@ class EthanClass (Learning):
             
         
         return new_data['cluster']
-
-    def test(self, k_space, head = None, sigma_space = [None], epsilon_space = [None], appendCount = None, seed = None):
-    
-        if head is None: head = self.df.shape[0]
-        if seed is not None: self.seed = seed
-        df = pd.DataFrame(self.df.filter(items = range(head), axis=0).to_dict())
-        (learning_set, tuner_set) = self.tuner_split(df)
-        p = self.stratified_partition(10, df = learning_set)
-        (train_dict, test_dict) = self.training_test_dicts(learning_set, p)
-        # csv = os.getcwd() + '\\' + str(self) + '\\' + "{}_Error_ClusEst.csv".format(str(self))
-        error_df = self.getErrorDf(tuner_set, train_dict, k_space, sigma_space, epsilon_space, appendCount)
-        # self.getAnalysisDf(learning_set, train_dict, test_dict, error_df)

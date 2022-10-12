@@ -7,6 +7,7 @@ from ForestFires import ForestFires
 from BreastCancer import BreastCancer
 import os
 import pandas as pd
+import VideoScripts
 
 '''
     Driver for k Nearest Neighbor    
@@ -21,25 +22,8 @@ def main_Ethan():
     A = Abalone()
     S = SoyBean()
 
-    A.test(k_space = range(4, 9), sigma_space = range(4, 14), appendCount = 30, seed = 2)
-    
-
-
-    # #hyperparameters:
-    # #a
-    # #b
-    # datasets = []
-    # datasets.append(Glass().Learning())
-
-    # for ds in datasets:
-    #     ds.split()
-    #     #for loop that goes through split dataset testing on each 10%
-    #     k = K_Nearest()
-    #     train = k.TrainFile(ds)
-    #     test = k.Test_file(ds, train)
-    #     #change hyperparameters for next dataset
-    #     a = test.a
-
+    #G.test(k_space = range(4, 9), appendCount = 30, seed = 2)
+    H.test(k_space = range(4, 9), sigma_space = range(4,14), appendCount = 30, seed = 2)
 
     
 def main_Ian():
@@ -56,9 +40,15 @@ def main_Ian():
     # ForestFires Complete
 
 
+def main_video():
+    D = SoyBean()  
 
+    #VideoScripts.show_partitions(D)
+    #VideoScripts.show_distance(D)
+    VideoScripts.show_kernel(D,4)
 
 
 if __name__ == '__main__':
-    main_Ian()
+    #main_Ian()
     #main_Ethan()
+    main_video()
