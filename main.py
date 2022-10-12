@@ -21,25 +21,8 @@ def main_Ethan():
     A = Abalone()
     S = SoyBean()
 
-    A.test(k_space = range(4, 9), sigma_space = range(4, 14), appendCount = 30, seed = 2)
-    
-
-
-    # #hyperparameters:
-    # #a
-    # #b
-    # datasets = []
-    # datasets.append(Glass().Learning())
-
-    # for ds in datasets:
-    #     ds.split()
-    #     #for loop that goes through split dataset testing on each 10%
-    #     k = K_Nearest()
-    #     train = k.TrainFile(ds)
-    #     test = k.Test_file(ds, train)
-    #     #change hyperparameters for next dataset
-    #     a = test.a
-
+    #G.test(k_space = range(4, 9), appendCount = 30, seed = 2)
+    A    .test(k_space = range(4, 9), sigma_space = range(4,14), appendCount = 30, seed = 2)
 
     
 def main_Ian():

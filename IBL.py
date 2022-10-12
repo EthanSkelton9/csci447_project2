@@ -89,9 +89,9 @@ class IBL (IanClass, EthanClass):
         (learning_set, tuner_set) = self.tuner_split(df)
         p = self.stratified_partition(10, df = learning_set)
         (train_dict, test_dict) = self.training_test_dicts(learning_set, p)
-        # csv = os.getcwd() + '\\' + str(self) + '\\' + "{}_Error_ClusEst.csv".format(str(self))
-        error_df = self.getErrorDf_ClusEst(tuner_set, train_dict, k_space, sigma_space, appendCount)
-        # self.getAnalysisDf(learning_set, train_dict, test_dict, error_df)
+        csv = os.getcwd() + '\\' + str(self) + '\\' + "{}_Error_ClusEst.csv".format(str(self))
+        error_df = self.getErrorDf_ClusEst(tuner_set, train_dict, k_space, sigma_space, appendCount,csv)
+        #self.getAnalysisDf(learning_set, train_dict, test_dict, error_df)
 
 
 

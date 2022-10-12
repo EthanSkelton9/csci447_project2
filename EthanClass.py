@@ -3,7 +3,13 @@ import os
 import math
 import random
 from Learning import Learning
+from ConfusionMatrix import ConfusionMatrix
+import functools
+from functools import partial as pf
+from functools import reduce as rd
+from itertools import product as prod
 import numpy as np
+import time
 
 class EthanClass (Learning):
     def __init__(self, file, features, name, classLoc, replaceValue = None, classification = True):
@@ -52,10 +58,27 @@ class EthanClass (Learning):
         return (df.filter(items=train, axis=0).reset_index(), df.filter(items=test, axis=0).reset_index())
 
     def norm_2_distance(self, x1, x2):
-        d = 0
-        for f_num in self.features_ohe:
-            d += math.pow(x1[f_num] - x2[f_num], 2)
-        return math.sqrt(d)
+        return math.sqrt(pd.Series(self.features_ohe).map(lambda f: math.pow(x1[f] - x2[f], 2)).sum())
+
+    def zero_one_loss(self, predicted, actual):
+        return pd.Series(zip(predicted, actual)).map(lambda pair: int(pair[0] == pair[1])).sum() / len(predicted)
+
+    def p_Macro(self, predicted, actual):
+        CM = ConfusionMatrix(self.classes)
+        for i in range(len(predicted)):
+            CM.addOne(predicted[i], actual[i])
+        return CM.pmacro()
+
+    def avg_Eval(self, f, g):
+        def eval(predicted, actual):
+            return (f(predicted, actual) + g(predicted, actual)) / 2
+        return eval
+
+    def classification_error(self, predicted, actual):
+        return 1 - self.avg_Eval(self.zero_one_loss, self.p_Macro)(predicted, actual)
+
+    def mean_squared_error(self, predicted, actual):
+        return pd.Series(zip(predicted, actual)).map(lambda pair: math.pow(pair[0] - pair[1], 2)).sum() / len(predicted)
 
 
     def naiveEstimator(self, x, h):
