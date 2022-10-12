@@ -67,7 +67,7 @@ class IanClass (Learning):
     def p_Macro(self, predicted, actual):
         CM = ConfusionMatrix(self.classes)
         for i in range(len(predicted)):
-            CM.addOne(predicted[i], actual[i])
+            CM.addOne(predicted.iloc[i], actual.iloc[i])
         return CM.pmacro()
 
     def avg_Eval(self, f, g):
@@ -79,7 +79,10 @@ class IanClass (Learning):
         return 1 - self.avg_Eval(self.zero_one_loss, self.p_Macro)(predicted, actual)
 
     def mean_squared_error(self, predicted, actual):
-        return pd.Series(zip(predicted, actual)).map(lambda pair: math.pow(pair[0] - pair[1], 2)).sum() / len(predicted)
+        p_vec = predicted.to_numpy()
+        a_vec = actual.to_numpy()
+        diff_vec = p_vec - a_vec
+        return diff_vec.dot(diff_vec) / len(predicted)
 
     '''
         nnEstimator returns a function that predicts the target of an example using k nearest neighbors
@@ -126,7 +129,7 @@ class IanClass (Learning):
                 pred_func = lambda set: self.comp(self.nnEstimator(set, k, sigma), pf(self.value, test_set))
                 old_pred = test_set.index.map(pred_func(train_set))
                 new_pred = test_set.index.map(pred_func(edited_neighbors))
-                actual = test_set['Target'].to_list()
+                actual = test_set['Target']
                 if self.evaluator(old_pred, actual) >= self.evaluator(new_pred, actual):
                     return self.nnEstimator(edited_neighbors, k, sigma, epsilon, True, test_set)
         return nn_estimate_by_value
@@ -143,7 +146,7 @@ class IanClass (Learning):
             return self.evaluator(pred_for_hp, tuner_target)
 
         start_time = time.time()
-        tuner_target = tuner_set['Target'].to_list()
+        tuner_target = tuner_set['Target']
         folds = pd.Index(range(10))
         my_space = pd.Series(prod(folds, k_space, sigma_space, epsilon_space))
         df_size = len(my_space)
@@ -168,22 +171,22 @@ class IanClass (Learning):
         print("Time Elapsed: {} Seconds".format(time.time() - start_time))
         return error_df
 
-    def getAnalysisDf(self, learning_set, train_dict, test_dict, error_df):
+    def getAnalysisDf_NN(self, learning_set, train_dict, test_dict, error_df):
         analysis_df = pd.DataFrame(columns=["k", "sigma", "epsilon", "Error"], index=range(10))
         predicted_classes = pd.Series(index=learning_set.index)
         for i in range(10):
             fold_df = error_df.loc[lambda df: df['Fold'] == i]
             best_row = fold_df.loc[lambda df: df['Error'] == fold_df["Error"].min()].iloc[0]
             (best_k, best_sigma, best_epsilon) = (int(best_row["k"]), best_row["sigma"], best_row["epsilon"])
-            nne = self.nnEstimator(train_dict[i], best_k, best_sigma, best_epsilon, edit=True, test_set=test_dict[i])
+            nne = self.nnEstimator(train_dict[i], best_k, best_sigma, best_epsilon, edit=False, test_set=test_dict[i])
             pred_for_fold = pd.Series(test_dict[i].index).map(self.comp(nne, pf(self.value, test_dict[i])))
-            test_target = test_dict[i]['Target'].to_list()
+            test_target = test_dict[i]['Target']
             predicted_classes.loc[test_dict[i].index] = pred_for_fold.values
             analysis_df.loc[[i], ["k", "sigma", "epsilon", "Error"]] = \
                 [best_k, best_sigma, best_epsilon, self.evaluator(pred_for_fold, test_target)]
         learning_set["Pred"] = predicted_classes
-        learning_set.to_csv(os.getcwd() + '\\' + str(self) + '\\' + "{}_Pred.csv".format(str(self)))
-        analysis_df.to_csv(os.getcwd() + '\\' + str(self) + '\\' + "{}_Analysis.csv".format(str(self)))
+        learning_set.to_csv(os.getcwd() + '\\' + str(self) + '\\' + "{}_Pred_NN.csv".format(str(self)))
+        analysis_df.to_csv(os.getcwd() + '\\' + str(self) + '\\' + "{}_Analysis_NN.csv".format(str(self)))
 
 
     def Ian_test(self, k_space, head = None, sigma_space = [None], epsilon_space = [None], appendCount = None, seed = None):
@@ -195,9 +198,9 @@ class IanClass (Learning):
         (train_dict, test_dict) = self.training_test_dicts(learning_set, p)
         csv = os.getcwd() + '\\' + str(self) + '\\' + "{}_Error_NN.csv".format(str(self))
         # csv = None
-        # error_df = pd.read_csv(csv, index_col=0)
-        error_df = self.getErrorDf_NN(tuner_set, train_dict, k_space, sigma_space, epsilon_space, appendCount, csv)
-        # self.getAnalysisDf(learning_set, train_dict, test_dict, error_df)
+        error_df = pd.read_csv(csv, index_col=0)
+        # error_df = self.getErrorDf_NN(tuner_set, train_dict, k_space, sigma_space, epsilon_space, appendCount, csv)
+        self.getAnalysisDf_NN(learning_set, train_dict, test_dict, error_df)
 
 
 

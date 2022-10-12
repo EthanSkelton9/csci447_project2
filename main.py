@@ -42,7 +42,7 @@ def main_Ethan():
     
 def main_Ian():
     D = Abalone()
-    D.Ian_test(k_space = range(4, 9), sigma_space = range(4, 14), appendCount = 3, seed = 7)
+    D.Ian_test(k_space = range(4, 9), sigma_space = range(4, 14), appendCount = 20, seed = 7)
     # NN
     #-----------------
     # SoyBean Complete
@@ -55,5 +55,5 @@ def main_Ian():
 
 
 if __name__ == '__main__':
-    #main_Ian()
-    main_Ethan()
+    main_Ian()
+    #main_Ethan()

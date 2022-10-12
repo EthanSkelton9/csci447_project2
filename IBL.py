@@ -39,7 +39,7 @@ class IBL (IanClass, EthanClass):
             pred_for_hp = tuner_set.index.map(self.clusterEstimator(train_dict[f], k, sigma))
             return self.evaluator(pred_for_hp, tuner_target)
 
-        tuner_target = tuner_set['Target'].to_list()
+        tuner_target = tuner_set['Target']
         folds = pd.Index(range(10))
         my_space = pd.Series(prod(folds, k_space, sigma_space))
         df_size = len(my_space)
