@@ -1,4 +1,3 @@
-from k_nearest import K_Nearest
 from IBL import IBL
 
 class ForestFires (IBL):

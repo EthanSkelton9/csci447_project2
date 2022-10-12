@@ -35,7 +35,7 @@ class IBL (IanClass, EthanClass):
 
     def getErrorDf_ClusEst(self, tuner_set, train_dict, k_space, sigma_space, appendCount = None, csv = None):
         def error(i):
-            (f, k, sigma, _) = my_space[i]
+            (f, k, sigma) = my_space[i]
             pred_for_hp = tuner_set.index.map(self.clusterEstimator(train_dict[f], k, sigma))
             return self.evaluator(pred_for_hp, tuner_target)
 
@@ -71,18 +71,18 @@ class IBL (IanClass, EthanClass):
             fold_df = error_df.loc[lambda df: df['Fold'] == i]
             best_row = fold_df.loc[lambda df: df['Error'] == fold_df["Error"].min()].iloc[0]
             (best_k, best_sigma) = (int(best_row["k"]), best_row["sigma"])
-            # nne = self.nnEstimator(train_dict[i], best_k, best_sigma, best_epsilon, edit=True, test_set=test_dict[i])
-            # pred_for_fold = pd.Series(test_dict[i].index).map(self.comp(nne, pf(self.value, test_dict[i])))
+            ce = self.clusterEstimator(train_dict[i], best_k, best_sigma, edit=True, test_set=test_dict[i])
+            pred_for_fold = pd.Series(test_dict[i].index).map(self.comp(ce, pf(self.value, test_dict[i])))
             test_target = test_dict[i]['Target'].to_list()
             predicted_classes.loc[test_dict[i].index] = pred_for_fold.values
             analysis_df.loc[[i], ["k", "sigma", "epsilon", "Error"]] = \
-                [best_k, best_sigma, best_epsilon, self.evaluator(pred_for_fold, test_target)]
+                [best_k, best_sigma, self.evaluator(pred_for_fold, test_target)]
         learning_set["Pred"] = predicted_classes
         learning_set.to_csv(os.getcwd() + '\\' + str(self) + '\\' + "{}_Pred.csv".format(str(self)))
         analysis_df.to_csv(os.getcwd() + '\\' + str(self) + '\\' + "{}_Analysis.csv".format(str(self)))
 
 
-    def test(self, k_space, head = None, sigma_space = [None], epsilon_space = [None], appendCount = None, seed = None):
+    def test(self, k_space, head = None, sigma_space = [None], appendCount = None, seed = None):
         if head is None: head = self.df.shape[0]
         if seed is not None: self.seed = seed
         df = pd.DataFrame(self.df.filter(items = range(head), axis=0).to_dict())
@@ -90,7 +90,7 @@ class IBL (IanClass, EthanClass):
         p = self.stratified_partition(10, df = learning_set)
         (train_dict, test_dict) = self.training_test_dicts(learning_set, p)
         # csv = os.getcwd() + '\\' + str(self) + '\\' + "{}_Error_ClusEst.csv".format(str(self))
-        error_df = self.getErrorDf(tuner_set, train_dict, k_space, sigma_space, epsilon_space, appendCount)
+        error_df = self.getErrorDf_ClusEst(tuner_set, train_dict, k_space, sigma_space, appendCount)
         # self.getAnalysisDf(learning_set, train_dict, test_dict, error_df)
 
 
