@@ -70,7 +70,7 @@ class EthanClass (Learning):
             c.append(self.centroid(data, rand))
         return c
     
-    def dist(self, data, centroid):
+    def d(self, data, centroid):
         distances = []
         for index, row in data.iterrows():
             r = []
@@ -125,7 +125,7 @@ class EthanClass (Learning):
             classList = []
             classA = []
             for u in cluster:
-                classList.append(self.dist(data,u))
+                classList.append(self.d(data,u))
             new_data = self.minimum(classList, new_data)
             # new_data['cluster'] = pd.Series(classA)
                 

@@ -7,6 +7,7 @@ from ForestFires import ForestFires
 from BreastCancer import BreastCancer
 import os
 import pandas as pd
+import VideoScripts
 
 '''
     Driver for k Nearest Neighbor    
@@ -37,8 +38,14 @@ def main_Ian():
     # ForestFires Complete
 
 
+def main_video():
+    D = SoyBean()  
 
+    #VideoScripts.show_partitions(D)
+    #VideoScripts.show_distance(D)
+    VideoScripts.show_kernel(D,4)
 
 if __name__ == '__main__':
     #main_Ian()
-    main_Ethan()
+    #main_Ethan()
+    main_video()
