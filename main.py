@@ -44,7 +44,9 @@ def main_Ethan():
     
 def main_Ian():
     D = Abalone()
-    D.Ian_test(k_space = range(4, 9), sigma_space = range(4, 14), appendCount = 20, seed = 7)
+    D.summary()
+    #D.latex_display()
+    #D.Ian_test(k_space = range(4, 9), head = 100, sigma_space = [4, 13], epsilon_space = range(2, 7), appendCount = 50, seed = 7)
     # NN
     #-----------------
     # SoyBean Complete
@@ -52,6 +54,7 @@ def main_Ian():
     # BreastCancer Complete
     # Hardware Complete
     # ForestFires Complete
+
 
 
 
