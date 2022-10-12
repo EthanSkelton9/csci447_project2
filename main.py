@@ -43,14 +43,15 @@ def main_Ethan():
 
     
 def main_Ian():
-    D = Hardware()
-    D.Ian_test(k_space = range(4, 9), sigma_space = range(4, 14), appendCount = 30, seed = 2)
+    D = Abalone()
+    D.Ian_test(k_space = range(4, 9), sigma_space = range(4, 14), appendCount = 3, seed = 7)
     # NN
     #-----------------
     # SoyBean Complete
     # Glass Complete
     # BreastCancer Complete
-    #
+    # Hardware Complete
+    # ForestFires Complete
 
 
 

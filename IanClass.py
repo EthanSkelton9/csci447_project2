@@ -92,9 +92,15 @@ class IanClass (Learning):
         @return function that takes @param example x and returns predicted class or target value
     '''
     def nnEstimator(self, train_set, k, sigma = None, epsilon = None, edit = False, test_set = None):
+        train_set_values = train_set.index.to_series().map(lambda i: self.value(train_set, i))
         def nn_estimate_by_value(x):
-            distances = train_set.index.to_series().map(lambda i: self.norm_2_distance(x, self.value(train_set, i)))
+            x_vec = x.to_numpy()
+            #print("--------------------")
+            #print("x is {}".format(x))
+            distances = train_set_values.map(lambda y: math.sqrt((x_vec - y.to_numpy()).dot(x_vec-y.to_numpy())))
+            #print("Distances Computed")
             dist_sorted = distances.sort_values().take(range(k))
+            #print("Sorted Distances")
             nn = dist_sorted.index
             if self.classification:
                 w = train_set.filter(items = nn, axis=0).groupby(by = ['Target'])['Target'].agg('count')
@@ -129,7 +135,10 @@ class IanClass (Learning):
     def getErrorDf_NN(self, tuner_set, train_dict, k_space, sigma_space, epsilon_space, appendCount = None, csv = None):
         def error(i):
             (f, k, sigma, epsilon) = my_space[i]
+            #print("Fold is {}. k is {}. sigma is {}. epsilon is {}.".format(f, k, sigma, epsilon))
             nne_for_hp = self.nnEstimator(train_dict[f], k, sigma, epsilon, edit=False, test_set=tuner_set)
+            #print("Created Estimator.")
+            #print("Size of tuning set is {}.".format(len(tuner_set.index)))
             pred_for_hp = tuner_set.index.map(self.comp(nne_for_hp, pf(self.value, tuner_set)))
             return self.evaluator(pred_for_hp, tuner_target)
 
@@ -147,6 +156,7 @@ class IanClass (Learning):
                 error_df[title] = col
             error_df["Error"] = df_size * [None]
             start = 0
+            print("Table Created")
         else:
             error_df = pd.read_csv(csv, index_col=0)
             filtered = error_df["Error"].loc[pd.isnull(error_df["Error"])]
@@ -184,6 +194,7 @@ class IanClass (Learning):
         p = self.stratified_partition_Ian(10, learning_set)
         (train_dict, test_dict) = self.training_test_dicts(learning_set, p)
         csv = os.getcwd() + '\\' + str(self) + '\\' + "{}_Error_NN.csv".format(str(self))
+        # csv = None
         # error_df = pd.read_csv(csv, index_col=0)
         error_df = self.getErrorDf_NN(tuner_set, train_dict, k_space, sigma_space, epsilon_space, appendCount, csv)
         # self.getAnalysisDf(learning_set, train_dict, test_dict, error_df)
