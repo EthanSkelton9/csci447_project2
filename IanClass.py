@@ -59,7 +59,7 @@ class IanClass (Learning):
         return (train_dict, test_dict)
 
     def norm_2_distance(self, x1, x2):
-        return math.sqrt(pd.Series(self.features_ohe).map(lambda f: math.pow(x1[f] - x2[f], 2)).sum())
+        return math.sqrt((x1.to_numpy() - x2.to_numpy()).dot(x1.to_numpy() - x2.to_numpy()))
 
     def zero_one_loss(self, predicted, actual):
         return pd.Series(zip(predicted, actual)).map(lambda pair: int(pair[0] == pair[1])).sum() / len(predicted)
@@ -85,6 +85,9 @@ class IanClass (Learning):
         a_vec = actual.to_numpy()
         diff_vec = p_vec - a_vec
         return diff_vec.dot(diff_vec) / len(predicted)
+
+    def kernel(self, x1, x2, sigma):
+        return math.exp(-math.pow(self.norm_2_distance(x1, x2), 2) / sigma)
 
     '''
         nnEstimator returns a function that predicts the target of an example using k nearest neighbors
@@ -129,18 +132,23 @@ class IanClass (Learning):
                     return math.exp(-math.pow(u, 2) / sigma)
                 v = dist_sorted.map(kernel).to_numpy()
                 r = nn.map(lambda i: train_set.at[i, 'Target'])
-                return (v.dot(r))/v.sum()
+                return v.dot(r)/v.sum()
 
         if edit:
             def correctly_classified(i):
                 #print("Testing Neighbors on Themselves")
                 target = self.nnEstimator(train_set.drop([i]), k, sigma=sigma, start_time=start_time)(self.value(train_set, i))
+                #print("Target is {}".format(target))
                 if self.classification:
                     return target == train_set.at[i, 'Target']
                 else:
                     return abs(target - train_set.at[i, 'Target']) < epsilon
 
+            yes = train_set.index.map(correctly_classified)
+            no = yes.map(lambda y: not y)
+
             edited_neighbors = train_set.loc[train_set.index.map(correctly_classified)]
+            print("Edited Out: {}".format(train_set.loc[no]))
             #print("Found Edited Neighbors")
             if train_set.shape[0] != edited_neighbors.shape[0]:
                 #print("It is a smaller set.")
@@ -153,6 +161,62 @@ class IanClass (Learning):
                 if self.evaluator(old_pred, actual) >= self.evaluator(new_pred, actual):
                     #print("Recursively Edit Again")
                     return self.nnEstimator(edited_neighbors, k, sigma, epsilon, True, test_set, start_time)
+        return nn_estimate_by_value
+
+
+    def enn(self, train_set, k, sigma = None, epsilon = None, test_set = None, editedOut = [[]]):
+        train_set_values = train_set.index.to_series().map(lambda i: self.value(train_set, i))
+        def nn_estimate_by_value(x):
+            # print("--------------------")
+            #print("New x to estimate")
+            x_vec = x.to_numpy()
+            #print("Computing Distances:")
+            distances = train_set_values.map(lambda y: math.sqrt((x_vec - y.to_numpy()).dot(x_vec-y.to_numpy())))
+            #print("Distances Computed")
+            # print("Number of distances is {}".format(len(distances)))
+            if k < len(distances):
+                #print("Distances Number: {}".format(len(distances)))
+                dist_sorted = distances.sort_values()
+                #print("Sorted Distances Number: {}".format(len(dist_sorted)))
+                dist_sorted = dist_sorted.take(range(k))
+            else:
+                dist_sorted = distances.sort_values()
+            #print("Sorted Distances")
+            nn = dist_sorted.index
+            if self.classification:
+                #print("Creating Train Frame")
+                w = train_set.filter(items = nn, axis=0).groupby(by = ['Target'])['Target'].agg('count')
+                count = lambda cl: w.at[cl] if cl in w.index else 0
+                #print("Returning Class")
+                return (editedOut, nn, rd(lambda cl1, cl2: cl1 if count(cl1) > count(cl2) else cl2, self.classes))
+            else:
+                def kernel(u):
+                    return math.exp(-math.pow(u, 2) / sigma)
+                v = dist_sorted.map(kernel).to_numpy()
+                r = nn.map(lambda i: train_set.at[i, 'Target'])
+                return (editedOut, nn, (v.dot(r))/v.sum())
+
+
+        def correctly_classified(i):
+            #print("Testing Neighbors on Themselves")
+            target = self.enn(train_set.drop([i]), k, sigma=sigma)(self.value(train_set, i))
+            if self.classification:
+                return target == train_set.at[i, 'Target']
+            else:
+                return abs(target - train_set.at[i, 'Target']) < epsilon
+
+
+        (edited_neighbors, out) = (train_set.loc[train_set.index.map(correctly_classified)], train_set.loc[train_set.index.map(not_correct)])
+        newEdits = editedOut + [out.index.to_list()]
+        #print("Found Edited Neighbors")
+        if train_set.shape[0] != edited_neighbors.shape[0]:
+            pred_func = lambda set: self.comp(self.nne(set, k, sigma), pf(self.value, test_set))
+            old_pred = test_set.index.map(pred_func(train_set))
+            new_pred = test_set.index.map(pred_func(edited_neighbors))
+            actual = test_set['Target']
+            if self.evaluator(old_pred, actual) >= self.evaluator(new_pred, actual):
+                #print("Recursively Edit Again")
+                return self.nnEstimator(edited_neighbors, k, sigma, epsilon, test_set)
         return nn_estimate_by_value
 
 
@@ -278,8 +342,8 @@ class IanClass (Learning):
         self.getAnalysisDf_ENN(learning_set, train_dict, test_dict, error_df)
 
     def latex_display(self):
-        csv = os.getcwd() + '\\' + str(self) + '\\' + "{}_Analysis_ENN.csv".format(str(self))
-        error_df = pd.read_csv(csv, index_col=0)
+        csv = os.getcwd() + '\\' + str(self) + '\\' + "{}_Error_ClusEst.csv".format(str(self))
+        error_df = pd.read_csv(csv, index_col=0).head(5)
         print(error_df.to_latex())
 
     def summary(self):
