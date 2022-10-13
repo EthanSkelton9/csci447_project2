@@ -90,9 +90,7 @@ class IBL (IanClass, EthanClass):
         p = self.stratified_partition_Ian(10, df = learning_set)
         (train_dict, test_dict) = self.training_test_dicts(learning_set, p)
         csv = os.getcwd() + '\\' + str(self) + '\\' + "{}_Error_ClusEst.csv".format(str(self))
-        error_df = pd.read_csv(csv, index_col=0)
-        # error_df = self.getErrorDf_ClusEst(tuner_set, train_dict, k_space, sigma_space, appendCount,csv)
-        self.getAnalysisDf_ClusEst(learning_set, train_dict, test_dict, error_df)
+
 
 
 

@@ -11,9 +11,11 @@ from itertools import product as prod
 import numpy as np
 import time
 import IanClass
+import EthanClass
 
 
 def show_partitions(data):
+<<<<<<< HEAD
     p = data.stratified_partition_Ian(10)
     df = data.df
     print("The size of the data set is {}".format(df.shape[0]))
@@ -146,12 +148,47 @@ def display(data):
 
 
 # def show_regression():
+=======
+    d = data.stratified_partition_Ian(10)
+    print(d)
 
+def show_distance(data):
+    x1 = data.df.iloc[1]
+    x2 =data.df.iloc[2]
+    print("Printing first value of dataframe:")
+    print(x1)
+    print("Printing second value of dataframe:")
+    print(x2)
+    print("Printing distance of two datapoints of dataframe:")
+    dist = data.norm_2_distance(x1, x2)
+    print(dist)
+    print("--------------------------------------")
+
+def show_kernel(data, sigma):
+    x1 = data.df.iloc[1]
+    x2 =data.df.iloc[2]
+    dist = data.norm_2_distance(x1, x2)
+    print("Second point would have a weight of:")
+    print(math.exp(-math.pow(dist, 2) / sigma))
+    print("Since it is:")
+    print(dist)
+    print("Away from the first point")
+>>>>>>> 11b6bb003572fea2ba3d6184cac394e3e60a7992
+
+#def show_regression(data):
+   #x1 = data.df.iloc[1] 
 # def show_classification():
 
 # def editing():
 
-# def cluster():
+def cluster(data):
+    print(data.df.iloc[1])
+    d = data.k_means_cluster(4)
+    f = d.loc["Date"]
+    print(f)
+    print(d)
+
+
 
 
 # def showPrefRegression():

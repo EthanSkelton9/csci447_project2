@@ -22,8 +22,8 @@ def main_Ethan():
     A = Abalone()
     S = SoyBean()
 
-    #G.test(k_space = range(4, 9), appendCount = 30, seed = 2)
-    H.test(k_space = range(4, 9), sigma_space = range(4,14), appendCount = 30, seed = 2)
+    B.test(k_space = range(4, 9), appendCount = 30, seed = 2)
+    #H.test(k_space = range(4, 9), sigma_space = range(4,14), appendCount = 30, seed = 2)
 
     
 def main_Ian():
@@ -44,9 +44,15 @@ def main_video():
     D = Abalone()
 
     #VideoScripts.show_partitions(D)
+<<<<<<< HEAD
     #VideoScripts.show_distance_and_kernel(D)
     #VideoScripts.nn_classification(D)
     VideoScripts.display(D)
+=======
+    #VideoScripts.show_distance(D)
+    #VideoScripts.show_kernel(D,4)
+    VideoScripts.cluster(D)
+>>>>>>> 11b6bb003572fea2ba3d6184cac394e3e60a7992
 
 
 if __name__ == '__main__':
