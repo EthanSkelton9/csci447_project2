@@ -43,16 +43,7 @@ def main_Ian():
 def main_video():
     D = Abalone()
 
-    #VideoScripts.show_partitions(D)
-<<<<<<< HEAD
-    #VideoScripts.show_distance_and_kernel(D)
-    #VideoScripts.nn_classification(D)
-    VideoScripts.display(D)
-=======
-    #VideoScripts.show_distance(D)
-    #VideoScripts.show_kernel(D,4)
-    VideoScripts.cluster(D)
->>>>>>> 11b6bb003572fea2ba3d6184cac394e3e60a7992
+
 
 
 if __name__ == '__main__':
